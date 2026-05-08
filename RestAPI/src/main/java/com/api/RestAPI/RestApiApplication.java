@@ -1,13 +1,13 @@
-package com.api.apisaascommunication;
+package com.api.RestAPI;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ApisaascommunicationApplication {
+public class RestApiApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(ApisaascommunicationApplication.class, args);
+		SpringApplication.run(RestApiApplication.class, args);
 	}
 
 }
