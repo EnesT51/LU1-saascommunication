@@ -12,10 +12,10 @@ services:
     image: openmrs/openmrs-reference-application-3-frontend:${TAG:-qa}
     restart: "unless-stopped"
     environment:
-    - SPA_PATH=/openmrs/spa
-    - API_URL=/openmrs
-    - SPA_CONFIG_URLS=/openmrs/spa/config-core_demo.json
-    - SPA_DEFAULT_LOCALE=
+      - SPA_PATH=/openmrs/spa
+      - API_URL=/openmrs
+      - SPA_CONFIG_URLS=/openmrs/spa/config-core_demo.json
+      - SPA_DEFAULT_LOCALE=
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       timeout: 5s
@@ -43,13 +43,12 @@ services:
       - openmrs-data:/openmrs/data
       - ./saascommunication/omod/target/saascommunication-1.0.0-SNAPSHOT.omod:/openmrs/data/modules/saascommunication.omod
 
-  # MariaDB
   db:
     image: mariadb:10.11.7
     restart: "unless-stopped"
     command: "mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci"
     healthcheck:
-      test: "mysql --user=${OMRS_DB_USER:-openmrs} --password=${OMRS_DB_PASSWORD:-openmrs} --execute \"SHOW DATABASES;\""
+      test: 'mysql --user=${OMRS_DB_USER:-openmrs} --password=${OMRS_DB_PASSWORD:-openmrs} --execute "SHOW DATABASES;"'
       interval: 3s
       timeout: 1s
       retries: 5
@@ -60,6 +59,17 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-openmrs}
     volumes:
       - db-data:/var/lib/mysql
+
+  messagequeue:
+    image: apache/activemq-classic:latest
+    container_name: activemq-classic-omrs
+    hostname: activemq-classic-omrs
+    restart: unless-stopped
+    environment:
+      - ACTIVEMQ_WEB_USER=admin
+      - ACTIVEMQ_WEB_PASSWORD=admin
+    ports:
+      - "8161:8161"
 
 volumes:
   openmrs-data: ~
