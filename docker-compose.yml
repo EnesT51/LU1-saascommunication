@@ -41,7 +41,7 @@ services:
       timeout: 5s
     volumes:
       - openmrs-data:/openmrs/data
-      - ../saascommunication/omod/target/saascommunication-1.0.0-SNAPSHOT.omod:/openmrs/data/modules/saascommunication.omod
+      - ./saascommunication/omod/target/saascommunication-1.0.0-SNAPSHOT.omod:/openmrs/data/modules/saascommunication.omod
 
   # MariaDB
   db:
