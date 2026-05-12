@@ -27,6 +27,7 @@ services:
     restart: "unless-stopped"
     depends_on:
       - db
+      - messagequeue
     environment:
       OMRS_DEV_DEBUG_PORT: "5005"
       OMRS_CONFIG_MODULE_WEB_ADMIN: "true"
