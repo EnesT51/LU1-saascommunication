@@ -1,0 +1,27 @@
+package com.api.RestAPI.infrastructure.appointment.persistence;
+
+import com.api.RestAPI.domain.appointment.abstractRepository.AppointmentRepository;
+import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.stereotype.Repository;
+
+@Repository
+public class AppointmentRepositoryImpl implements AppointmentRepository {
+    
+    private final JpaAppointmentRepository jpaAppointmentRepository;
+
+    public AppointmentRepositoryImpl(JpaAppointmentRepository jpaAppointmentRepository) {
+        this.jpaAppointmentRepository = jpaAppointmentRepository;
+    }
+
+    public List<AppointmentEntity> getAppointments() {
+        return jpaAppointmentRepository.findAll();
+    }
+    public Optional<AppointmentEntity> findById(UUID id) {
+        return jpaAppointmentRepository.findById(id);
+    }
+}
