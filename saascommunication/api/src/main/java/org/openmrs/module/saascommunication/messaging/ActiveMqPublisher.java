@@ -6,7 +6,9 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -30,14 +32,14 @@ public class ActiveMqPublisher {
 	
 	public void publishTestAppointmentEvent() throws Exception {
 		try {
-			publishViaJms();
+			publishViaJms(createTestAppointmentPayloads());
 		}
 		catch (Exception jmsException) {
-			publishViaWebApi();
+			publishViaWebApi(createTestAppointmentPayloads());
 		}
 	}
 	
-	private void publishViaJms() throws Exception {
+	private void publishViaJms(List<String> payloads) throws Exception {
 		ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(BROKER_URL);
 		Thread currentThread = Thread.currentThread();
 		ClassLoader originalContextClassLoader = currentThread.getContextClassLoader();
@@ -57,8 +59,10 @@ public class ActiveMqPublisher {
 			Destination destination = session.createQueue(QUEUE_NAME);
 			producer = session.createProducer(destination);
 			
-			TextMessage message = session.createTextMessage(createTestAppointmentJson());
-			producer.send(message);
+			for (String payload : payloads) {
+				TextMessage message = session.createTextMessage(payload);
+				producer.send(message);
+			}
 		}
 		finally {
 			currentThread.setContextClassLoader(originalContextClassLoader);
@@ -77,36 +81,38 @@ public class ActiveMqPublisher {
 		}
 	}
 	
-	private void publishViaWebApi() throws Exception {
-		HttpURLConnection connection = null;
-		
-		try {
-			URL url = new URL(WEB_API_URL);
-			connection = (HttpURLConnection) url.openConnection();
-			connection.setRequestMethod("POST");
-			connection.setDoOutput(true);
-			connection.setRequestProperty("Content-Type", "application/json");
-			connection.setRequestProperty("Authorization", "Basic " + getBasicAuthToken());
+	private void publishViaWebApi(List<String> payloads) throws Exception {
+		for (String payload : payloads) {
+			HttpURLConnection connection = null;
 			
-			byte[] payload = createTestAppointmentJson().getBytes(StandardCharsets.UTF_8);
-			connection.setFixedLengthStreamingMode(payload.length);
-			
-			OutputStream outputStream = connection.getOutputStream();
 			try {
-				outputStream.write(payload);
+				URL url = new URL(WEB_API_URL);
+				connection = (HttpURLConnection) url.openConnection();
+				connection.setRequestMethod("POST");
+				connection.setDoOutput(true);
+				connection.setRequestProperty("Content-Type", "application/fhir+json");
+				connection.setRequestProperty("Authorization", "Basic " + getBasicAuthToken());
+				
+				byte[] payloadBytes = payload.getBytes(StandardCharsets.UTF_8);
+				connection.setFixedLengthStreamingMode(payloadBytes.length);
+				
+				OutputStream outputStream = connection.getOutputStream();
+				try {
+					outputStream.write(payloadBytes);
+				}
+				finally {
+					outputStream.close();
+				}
+				
+				int responseCode = connection.getResponseCode();
+				if (responseCode < 200 || responseCode >= 300) {
+					throw new IllegalStateException("ActiveMQ web API returned status " + responseCode);
+				}
 			}
 			finally {
-				outputStream.close();
-			}
-			
-			int responseCode = connection.getResponseCode();
-			if (responseCode < 200 || responseCode >= 300) {
-				throw new IllegalStateException("ActiveMQ web API returned status " + responseCode);
-			}
-		}
-		finally {
-			if (connection != null) {
-				connection.disconnect();
+				if (connection != null) {
+					connection.disconnect();
+				}
 			}
 		}
 	}
@@ -115,24 +121,63 @@ public class ActiveMqPublisher {
 		String credentials = WEB_API_USERNAME + ":" + WEB_API_PASSWORD;
 		return Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
 	}
-
+	
 	private static String getRequiredEnv(String key) {
 		String value = System.getenv(key);
-		if (value == null || value.isBlank()) {
+		if (isNullOrEmpty(value)) {
 			throw new IllegalStateException("Missing required environment variable: " + key);
 		}
 		return value;
 	}
-
+	
 	private static String getEnvOrDefault(String key, String defaultValue) {
 		String value = System.getenv(key);
-		return (value == null || value.isBlank()) ? defaultValue : value;
+		return isNullOrEmpty(value) ? defaultValue : value;
 	}
 	
-	private String createTestAppointmentJson() {
-		return "{" + "\"eventId\":\"test-from-openmrs-module\"," + "\"eventType\":\"AppointmentScheduled\","
-		        + "\"timestamp\":\"2026-05-08T10:00:00Z\"," + "\"payload\":{" + "\"appointmentId\":\"appt-123\","
-		        + "\"patientId\":\"patient-456\"," + "\"start\":\"2026-05-09T10:00:00+02:00\","
-		        + "\"location\":\"Polikliniek A, kamer 12\"," + "\"instructions\":\"Neem medicatie mee\"" + "}" + "}";
+	private static boolean isNullOrEmpty(String value) {
+		return value == null || value.trim().length() == 0;
+	}
+	
+	private List<String> createTestAppointmentPayloads() {
+		return Arrays.asList(createAppointmentOne(), createAppointmentTwo());
+	}
+	
+	private String createAppointmentOne() {
+		return "{"
+		        + "\"resourceType\":\"Appointment\","
+		        + "\"id\":\"appt-123\","
+		        + "\"status\":\"booked\","
+		        + "\"serviceCategory\":[{\"coding\":[{\"system\":\"http://terminology.hl7.org/CodeSystem/service-category\",\"code\":\"17\",\"display\":\"General Practice\"}]}],"
+		        + "\"appointmentType\":{\"coding\":[{\"system\":\"http://terminology.hl7.org/CodeSystem/v2-0276\",\"code\":\"FOLLOWUP\",\"display\":\"Follow-up\"}]},"
+		        + "\"reasonCode\":[{\"text\":\"Controle consult\"}],"
+		        + "\"description\":\"Controle afspraak bij polikliniek A\","
+		        + "\"start\":\"2026-05-09T10:00:00+02:00\","
+		        + "\"end\":\"2026-05-09T10:30:00+02:00\","
+		        + "\"created\":\"2026-05-08T10:00:00Z\","
+		        + "\"comment\":\"Neem medicatie mee\","
+		        + "\"participant\":["
+		        + "{\"actor\":{\"reference\":\"Patient/patient-456\",\"display\":\"Test Patient 1\"},\"status\":\"accepted\"},"
+		        + "{\"actor\":{\"reference\":\"Location/location-12\",\"display\":\"Polikliniek A, kamer 12\"},\"status\":\"accepted\"}"
+		        + "]" + "}";
+	}
+	
+	private String createAppointmentTwo() {
+		return "{"
+		        + "\"resourceType\":\"Appointment\","
+		        + "\"id\":\"appt-789\","
+		        + "\"status\":\"booked\","
+		        + "\"serviceCategory\":[{\"coding\":[{\"system\":\"http://terminology.hl7.org/CodeSystem/service-category\",\"code\":\"26\",\"display\":\"Specialist Surgical\"}]}],"
+		        + "\"appointmentType\":{\"coding\":[{\"system\":\"http://terminology.hl7.org/CodeSystem/v2-0276\",\"code\":\"ROUTINE\",\"display\":\"Routine\"}]},"
+		        + "\"reasonCode\":[{\"text\":\"Intake gesprek\"}],"
+		        + "\"description\":\"Nieuwe intake afspraak bij polikliniek B\","
+		        + "\"start\":\"2026-05-10T14:00:00+02:00\","
+		        + "\"end\":\"2026-05-10T14:45:00+02:00\","
+		        + "\"created\":\"2026-05-08T11:00:00Z\","
+		        + "\"comment\":\"Vergeet identiteitsbewijs niet\","
+		        + "\"participant\":["
+		        + "{\"actor\":{\"reference\":\"Patient/patient-999\",\"display\":\"Test Patient 2\"},\"status\":\"accepted\"},"
+		        + "{\"actor\":{\"reference\":\"Location/location-22\",\"display\":\"Polikliniek B, kamer 4\"},\"status\":\"accepted\"}"
+		        + "]" + "}";
 	}
 }

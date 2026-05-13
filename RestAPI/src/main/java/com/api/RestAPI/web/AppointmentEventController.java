@@ -22,4 +22,9 @@ public class AppointmentEventController {
     public Map<String, Object> latestMessage() {
         return eventStore.snapshot();
     }
+
+    @GetMapping
+    public Map<String, Object> allMessages() {
+        return eventStore.snapshot();
+    }
 }

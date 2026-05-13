@@ -1,7 +1,10 @@
 package com.api.RestAPI.messaging;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -13,6 +16,7 @@ public class AppointmentEventStore {
 
     private final AtomicInteger receivedCount = new AtomicInteger();
     private final String queueName;
+    private final List<String> messages = Collections.synchronizedList(new ArrayList<String>());
 
     private volatile String lastMessage = "No message received yet";
     private volatile Instant lastReceivedAt;
@@ -22,6 +26,7 @@ public class AppointmentEventStore {
     }
 
     public void store(String payload) {
+        messages.add(payload);
         lastMessage = payload;
         lastReceivedAt = Instant.now();
         receivedCount.incrementAndGet();
@@ -33,6 +38,9 @@ public class AppointmentEventStore {
         status.put("receivedCount", receivedCount.get());
         status.put("lastReceivedAt", lastReceivedAt);
         status.put("lastMessage", lastMessage);
+        synchronized (messages) {
+            status.put("messages", new ArrayList<String>(messages));
+        }
         return status;
     }
 }
