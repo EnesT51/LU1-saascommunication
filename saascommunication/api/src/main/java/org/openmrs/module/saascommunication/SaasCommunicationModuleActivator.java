@@ -12,7 +12,6 @@ package org.openmrs.module.saascommunication;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.module.BaseModuleActivator;
-import org.openmrs.module.saascommunication.messaging.ActiveMqPublisher;
 
 /**
  * This class contains the logic that is run every time this module is either started or shutdown.
@@ -27,16 +26,6 @@ public class SaasCommunicationModuleActivator extends BaseModuleActivator {
 	public void started() {
 		System.out.println("Started Saas Communication Module");
 		log.info("Started Saas Communication Module");
-		
-		try {
-			new ActiveMqPublisher().publishTestAppointmentEvent();
-			System.out.println("Published test appointment event to ActiveMQ");
-			log.info("Published test appointment event to ActiveMQ");
-		}
-		catch (Exception e) {
-			System.err.println("Failed to publish test appointment event to ActiveMQ");
-			log.error("Failed to publish test appointment event to ActiveMQ", e);
-		}
 	}
 	
 	/**
