@@ -74,6 +74,22 @@ services:
     ports:
       - "8161:8161"
 
+  restapi:
+    build:
+      context: ./RestAPI
+    restart: "unless-stopped"
+    depends_on:
+      - db
+      - messagequeue
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: openmrs
+      DB_USER: ${OMRS_DB_USER:-openmrs}
+      DB_PASSWORD: ${OMRS_DB_PASSWORD:-openmrs}
+    ports:
+      - "8081:8081"
+
 volumes:
   openmrs-data: ~
   db-data: ~
