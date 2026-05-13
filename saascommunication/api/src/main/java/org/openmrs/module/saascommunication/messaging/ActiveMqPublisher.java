@@ -19,12 +19,11 @@ import javax.jms.TextMessage;
 
 public class ActiveMqPublisher {
 	
-	private static final String BROKER_URL = getEnvOrDefault("ACTIVEMQ_BROKER_URL", "tcp://activemq-classic-omrs:61616");
+	private static final String BROKER_URL = getRequiredEnv("ACTIVEMQ_BROKER_URL");
 	
-	private static final String QUEUE_NAME = "openmrs.appointments";
+	private static final String QUEUE_NAME = getRequiredEnv("ACTIVEMQ_QUEUE_NAME");
 	
-	private static final String WEB_API_URL = getEnvOrDefault("ACTIVEMQ_WEB_API_URL",
-	    "http://activemq-classic-omrs:8161/api/message/" + QUEUE_NAME + "?type=queue");
+	private static final String WEB_API_URL = getRequiredEnv("ACTIVEMQ_WEB_API_URL");
 	
 	private static final String WEB_API_USERNAME = getRequiredEnv("ACTIVEMQ_USERNAME");
 	
@@ -128,11 +127,6 @@ public class ActiveMqPublisher {
 			throw new IllegalStateException("Missing required environment variable: " + key);
 		}
 		return value;
-	}
-	
-	private static String getEnvOrDefault(String key, String defaultValue) {
-		String value = System.getenv(key);
-		return isNullOrEmpty(value) ? defaultValue : value;
 	}
 	
 	private static boolean isNullOrEmpty(String value) {
