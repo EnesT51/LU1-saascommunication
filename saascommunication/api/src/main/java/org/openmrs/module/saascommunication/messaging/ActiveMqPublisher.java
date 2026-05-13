@@ -17,15 +17,16 @@ import javax.jms.TextMessage;
 
 public class ActiveMqPublisher {
 	
-	private static final String BROKER_URL = "tcp://activemq-classic-omrs:61616";
+	private static final String BROKER_URL = getEnvOrDefault("ACTIVEMQ_BROKER_URL", "tcp://activemq-classic-omrs:61616");
 	
 	private static final String QUEUE_NAME = "openmrs.appointments";
 	
-	private static final String WEB_API_URL = "http://activemq-classic-omrs:8161/api/message/" + QUEUE_NAME + "?type=queue";
+	private static final String WEB_API_URL = getEnvOrDefault("ACTIVEMQ_WEB_API_URL",
+	    "http://activemq-classic-omrs:8161/api/message/" + QUEUE_NAME + "?type=queue");
 	
-	private static final String WEB_API_USERNAME = "admin";
+	private static final String WEB_API_USERNAME = getRequiredEnv("ACTIVEMQ_USERNAME");
 	
-	private static final String WEB_API_PASSWORD = "admin";
+	private static final String WEB_API_PASSWORD = getRequiredEnv("ACTIVEMQ_PASSWORD");
 	
 	public void publishTestAppointmentEvent() throws Exception {
 		try {
@@ -113,6 +114,19 @@ public class ActiveMqPublisher {
 	private String getBasicAuthToken() {
 		String credentials = WEB_API_USERNAME + ":" + WEB_API_PASSWORD;
 		return Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+	}
+
+	private static String getRequiredEnv(String key) {
+		String value = System.getenv(key);
+		if (value == null || value.isBlank()) {
+			throw new IllegalStateException("Missing required environment variable: " + key);
+		}
+		return value;
+	}
+
+	private static String getEnvOrDefault(String key, String defaultValue) {
+		String value = System.getenv(key);
+		return (value == null || value.isBlank()) ? defaultValue : value;
 	}
 	
 	private String createTestAppointmentJson() {
