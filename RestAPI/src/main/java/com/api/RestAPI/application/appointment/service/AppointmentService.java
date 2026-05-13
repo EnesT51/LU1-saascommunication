@@ -3,26 +3,32 @@ package com.api.RestAPI.application.appointment.service;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+
+import com.api.RestAPI.application.HapiFhir.interfaces.IFhirParser;
+import com.api.RestAPI.application.appointment.interfaces.IAppointmentMapper;
+import com.api.RestAPI.domain.appointment.Interface.IAppointmentRepository;
 import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
 import com.api.RestAPI.infrastructure.appointment.persistence.JpaAppointmentRepository;
-import com.api.RestAPI.application.appointment.dto.AppointmentDto;
-import com.api.RestAPI.domain.appointment.abstractRepository.AppointmentRepository;
-import com.api.RestAPI.application.appointment.mapper.AppointmentMapper;
 import org.hl7.fhir.r4.model.Appointment;
-import com.api.RestAPI.infrastructure.config.FhirConfig;
 
-import ca.uhn.fhir.parser.IParser;
 @Service
 public class AppointmentService {
     
-    private final AppointmentRepository appointmentRepository;
+    private final IAppointmentRepository appointmentRepository;
     private final JpaAppointmentRepository jpaAppointmentRepository;
-    private final FhirConfig fhirConfig;
+    private final IAppointmentMapper appointmentMapper;
+    private final IFhirParser fhirParser;
 
-    public AppointmentService(AppointmentRepository appointmentRepository, JpaAppointmentRepository jpaAppointmentRepository, FhirConfig fhirConfig) {
+    public AppointmentService(
+        IAppointmentRepository appointmentRepository, 
+        JpaAppointmentRepository jpaAppointmentRepository, 
+        IAppointmentMapper appointmentMapper, 
+        IFhirParser fhirParser) {
+            
         this.appointmentRepository = appointmentRepository;
         this.jpaAppointmentRepository = jpaAppointmentRepository;
-        this.fhirConfig = fhirConfig;
+        this.appointmentMapper = appointmentMapper;
+        this.fhirParser = fhirParser;
     }
 
     public List<AppointmentEntity> getAppointments(){
@@ -42,12 +48,8 @@ public class AppointmentService {
     public void receiveAppointment(String fhirJson) {
         
         try{
-            IParser parser = fhirConfig.fhirContext().newJsonParser();
-            Appointment appointment = parser.parseResource(Appointment.class, fhirJson);
-            if (appointment == null) {
-                throw new IllegalArgumentException("Failed to parse FHIR JSON into Appointment resource");
-            }
-            AppointmentEntity appointmentEntity = AppointmentMapper.toEntity(appointment);
+            Appointment appointment = fhirParser.parseAppointment(fhirJson);
+            AppointmentEntity appointmentEntity = appointmentMapper.toEntity(appointment, null);
             if (appointmentEntity == null) {
                 throw new IllegalArgumentException("Failed to convert FHIR Appointment to Appointment entity");
             }

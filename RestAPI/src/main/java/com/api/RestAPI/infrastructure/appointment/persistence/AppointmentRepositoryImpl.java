@@ -1,6 +1,6 @@
 package com.api.RestAPI.infrastructure.appointment.persistence;
 
-import com.api.RestAPI.domain.appointment.abstractRepository.AppointmentRepository;
+import com.api.RestAPI.domain.appointment.Interface.IAppointmentRepository;
 import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
 
 import java.util.List;
@@ -10,7 +10,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class AppointmentRepositoryImpl implements AppointmentRepository {
+public class AppointmentRepositoryImpl implements IAppointmentRepository {
     
     private final JpaAppointmentRepository jpaAppointmentRepository;
 

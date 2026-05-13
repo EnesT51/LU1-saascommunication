@@ -1,9 +1,16 @@
 package com.api.RestAPI.application.appointment.mapper;
 
-import com.api.RestAPI.application.appointment.dto.AppointmentDto;
+
+import org.hl7.fhir.r4.model.Appointment;
+import org.hl7.fhir.r4.model.Patient;
+import org.springframework.stereotype.Component;
+
+import com.api.RestAPI.application.appointment.interfaces.IAppointmentMapper;
 import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
 import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
-public class AppointmentMapper {
+
+@Component
+public class AppointmentMapper implements IAppointmentMapper {
     
     // public static AppointmentEntity toEntity(AppointmentDto appointmentDto) {
     //     if (appointmentDto == null) {
@@ -20,18 +27,17 @@ public class AppointmentMapper {
     //     appointment.setStatus(AppointmentStatus.valueOf(appointmentDto.getStatus().toString()));
     //     return appointment;
     // }
-    public static AppointmentEntity toEntity(org.hl7.fhir.r4.model.Appointment appointment) {
+    public AppointmentEntity toEntity(Appointment appointment, Patient patient) {
         if (appointment == null) {
             return null;
         }
         AppointmentEntity appointmentEntity = new AppointmentEntity();
-        // Map fields from FHIR Appointment to your AppointmentEntity
-        // This is a simplified example, you may need to handle more fields and complex mappings
+
         appointmentEntity.setAppointmentId(appointment.getIdElement().getIdPart());
         appointmentEntity.setStart(appointment.getStart());
         appointmentEntity.setEnd(appointment.getEnd());
         appointmentEntity.setInstructions(appointment.getDescription());
-        // Map status from FHIR to your enum
+
         if (appointment.hasStatus()) {
             switch (appointment.getStatus()) {
                 case BOOKED:
@@ -41,7 +47,7 @@ public class AppointmentMapper {
                     appointmentEntity.setStatus(AppointmentStatus.CANCELLED);
                     break;
                 default:
-                    appointmentEntity.setStatus(AppointmentStatus.BOOKED); // Default mapping
+                    appointmentEntity.setStatus(AppointmentStatus.BOOKED);
             }
         }
         return appointmentEntity;
