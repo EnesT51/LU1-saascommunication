@@ -9,25 +9,21 @@ import com.api.RestAPI.application.appointment.interfaces.IAppointmentEventProce
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentMapper;
 import com.api.RestAPI.domain.appointment.Interface.IAppointmentRepository;
 import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
-import com.api.RestAPI.infrastructure.appointment.persistence.JpaAppointmentRepository;
 import org.hl7.fhir.r4.model.Appointment;
 
 @Service
 public class AppointmentService implements IAppointmentEventProcessor {
 
     private final IAppointmentRepository appointmentRepository;
-    private final JpaAppointmentRepository jpaAppointmentRepository;
     private final IAppointmentMapper appointmentMapper;
     private final IFhirParser fhirParser;
 
     public AppointmentService(
         IAppointmentRepository appointmentRepository,
-        JpaAppointmentRepository jpaAppointmentRepository,
         IAppointmentMapper appointmentMapper,
         IFhirParser fhirParser) {
 
         this.appointmentRepository = appointmentRepository;
-        this.jpaAppointmentRepository = jpaAppointmentRepository;
         this.appointmentMapper = appointmentMapper;
         this.fhirParser = fhirParser;
     }
@@ -43,7 +39,7 @@ public class AppointmentService implements IAppointmentEventProcessor {
 
             AppointmentEntity existing = findAppointmentByFhirId(fhirId);
             if (existing != null && appointment.getStatus() == Appointment.AppointmentStatus.BOOKED) {
-                throw new IllegalStateException("Appointment with FHIR ID " + fhirId + " is already booked");
+                throw new IllegalStateException("Appointment is already booked");
             } else if (existing != null && appointment.getStatus() == Appointment.AppointmentStatus.CANCELLED) {
                 updateAppointment(existing, appointment);
             } else {
@@ -67,13 +63,13 @@ public class AppointmentService implements IAppointmentEventProcessor {
         if (appointmentEntity == null) {
             throw new IllegalArgumentException("Failed to convert FHIR Appointment to Appointment entity");
         }
-        jpaAppointmentRepository.save(appointmentEntity);
+        appointmentRepository.save(appointmentEntity);
     }
 
     private void updateAppointment(AppointmentEntity existing, Appointment appointment) {
         AppointmentEntity updated = appointmentMapper.toEntity(appointment);
         updated.setId(existing.getId());
-        jpaAppointmentRepository.save(updated);
+        appointmentRepository.save(updated);
     }
 
     @Override

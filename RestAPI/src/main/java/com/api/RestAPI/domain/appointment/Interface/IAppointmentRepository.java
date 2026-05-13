@@ -11,5 +11,6 @@ public interface IAppointmentRepository
 {
     Optional<AppointmentEntity> findById(UUID id);
     Optional<AppointmentEntity> findByAppointmentId(String appointmentId);
+    AppointmentEntity save(AppointmentEntity appointment);
     List<AppointmentEntity> getAppointments();
 }
