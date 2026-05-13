@@ -27,6 +27,7 @@ services:
     restart: "unless-stopped"
     depends_on:
       - db
+      - messagequeue
     environment:
       OMRS_DEV_DEBUG_PORT: "5005"
       OMRS_CONFIG_MODULE_WEB_ADMIN: "true"
@@ -36,6 +37,10 @@ services:
       OMRS_CONFIG_CONNECTION_DATABASE: openmrs
       OMRS_CONFIG_CONNECTION_USERNAME: ${OMRS_DB_USER:-openmrs}
       OMRS_CONFIG_CONNECTION_PASSWORD: ${OMRS_DB_PASSWORD:-openmrs}
+      ACTIVEMQ_BROKER_URL: ${ACTIVEMQ_BROKER_URL:-tcp://activemq-classic-omrs:61616}
+      ACTIVEMQ_WEB_API_URL: ${ACTIVEMQ_WEB_API_URL:-http://activemq-classic-omrs:8161/api/message/openmrs.appointments?type=queue}
+      ACTIVEMQ_USERNAME: ${ACTIVEMQ_USERNAME}
+      ACTIVEMQ_PASSWORD: ${ACTIVEMQ_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs"]
       timeout: 5s
@@ -68,10 +73,29 @@ services:
     hostname: activemq-classic-omrs
     restart: unless-stopped
     environment:
-      - ACTIVEMQ_WEB_USER=admin
-      - ACTIVEMQ_WEB_PASSWORD=admin
+      - ACTIVEMQ_WEB_USER=${ACTIVEMQ_USERNAME}
+      - ACTIVEMQ_WEB_PASSWORD=${ACTIVEMQ_PASSWORD}
     ports:
       - "8161:8161"
+
+  restapi:
+    build:
+      context: ./RestAPI
+    restart: "unless-stopped"
+    depends_on:
+      - db
+      - messagequeue
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: openmrs
+      DB_USER: ${OMRS_DB_USER:-openmrs}
+      DB_PASSWORD: ${OMRS_DB_PASSWORD:-openmrs}
+      ACTIVEMQ_BROKER_URL: ${ACTIVEMQ_BROKER_URL:-tcp://activemq-classic-omrs:61616}
+      ACTIVEMQ_USERNAME: ${ACTIVEMQ_USERNAME}
+      ACTIVEMQ_PASSWORD: ${ACTIVEMQ_PASSWORD}
+    ports:
+      - "8081:8081"
 
 volumes:
   openmrs-data: ~
