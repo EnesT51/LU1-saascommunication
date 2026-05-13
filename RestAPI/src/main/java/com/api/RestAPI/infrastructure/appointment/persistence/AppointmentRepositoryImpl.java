@@ -21,7 +21,13 @@ public class AppointmentRepositoryImpl implements IAppointmentRepository {
     public List<AppointmentEntity> getAppointments() {
         return jpaAppointmentRepository.findAll();
     }
+
     public Optional<AppointmentEntity> findById(UUID id) {
         return jpaAppointmentRepository.findById(id);
+    }
+
+    @Override
+    public Optional<AppointmentEntity> findByAppointmentId(String appointmentId) {
+        return jpaAppointmentRepository.findByAppointmentId(appointmentId);
     }
 }

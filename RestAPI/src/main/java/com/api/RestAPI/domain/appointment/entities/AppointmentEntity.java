@@ -1,11 +1,11 @@
 package com.api.RestAPI.domain.appointment.entities;
 
-import java.time.LocalDateTime;
-import java.util.Date;
+import java.time.Instant;
 import java.util.UUID;
 
 import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -20,69 +20,118 @@ public class AppointmentEntity {
     @Id
     @GeneratedValue
     private UUID id;
-    
+
     private String appointmentId;
     private String patientId;
-    private String phoneNumber;
-    private Date start;
-    private Date end;
-    private String instructions;
+    private String patientName;
+    private String practitionerId;
+    private String practitionerName;
+
+    private Instant start;
+    private Instant end;
+
+    private String description;
+    @Column(columnDefinition = "TEXT")
+    private String comment;
+
     private String location;
 
     @Enumerated(EnumType.STRING)
     private AppointmentStatus status;
 
+    public UUID getId() {
+        return id;
+    }
+
     public String getAppointmentId() {
         return appointmentId;
     }
+
     public String getPatientId() {
         return patientId;
     }
-    public String getPhoneNumber() {
-        return phoneNumber;
+
+    public String getPatientName() {
+        return patientName;
     }
-    public Date getStart() {
+
+    public String getPractitionerId() {
+        return practitionerId;
+    }
+
+    public String getPractitionerName() {
+        return practitionerName;
+    }
+
+    public Instant getStart() {
         return start;
     }
-    public Date getEnd() {
+
+    public Instant getEnd() {
         return end;
     }
-    public String getInstructions() {
-        return instructions;
+
+    public String getDescription() {
+        return description;
     }
+
+    public String getComment() {
+        return comment;
+    }
+
     public String getLocation() {
         return location;
     }
+
     public AppointmentStatus getStatus() {
         return status;
     }
+
     public void setId(UUID id) {
         this.id = id;
     }
+
     public void setAppointmentId(String appointmentId) {
         this.appointmentId = appointmentId;
     }
+
     public void setPatientId(String patientId) {
         this.patientId = patientId;
     }
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
+
+    public void setPatientName(String patientName) {
+        this.patientName = patientName;
     }
-    public void setStart(Date start) {
+
+    public void setPractitionerId(String practitionerId) {
+        this.practitionerId = practitionerId;
+    }
+
+    public void setPractitionerName(String practitionerName) {
+        this.practitionerName = practitionerName;
+    }
+
+    public void setStart(Instant start) {
         this.start = start;
     }
-    public void setEnd(Date end) {
+
+    public void setEnd(Instant end) {
         this.end = end;
     }
-    public void setInstructions(String instructions) {
-        this.instructions = instructions;
+
+    public void setDescription(String description) {
+        this.description = description;
     }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
     public void setLocation(String location) {
         this.location = location;
     }
+
     public void setStatus(AppointmentStatus status) {
         this.status = status;
     }
-    
-
 }

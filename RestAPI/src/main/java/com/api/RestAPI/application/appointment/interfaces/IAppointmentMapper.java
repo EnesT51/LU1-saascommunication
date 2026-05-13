@@ -2,7 +2,6 @@ package com.api.RestAPI.application.appointment.interfaces;
 
 import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
 import org.hl7.fhir.r4.model.Appointment;
-import org.hl7.fhir.r4.model.Patient;
 public interface IAppointmentMapper {
-    AppointmentEntity toEntity(Appointment appointment, Patient patient);
+    AppointmentEntity toEntity(Appointment appointment);
 }
