@@ -1,5 +1,6 @@
 package com.api.RestAPI.application.appointment.mapper;
 
+import org.hibernate.MappingException;
 import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.Reference;
 import org.springframework.stereotype.Component;
@@ -13,7 +14,7 @@ public class AppointmentMapper implements IAppointmentMapper {
 
     public AppointmentEntity toEntity(Appointment appointment) {
         if (appointment == null) {
-            return null;
+            throw new MappingException("Appointment mag niet null zijn");
         }
         AppointmentEntity appointmentEntity = new AppointmentEntity();
 
@@ -23,24 +24,20 @@ public class AppointmentMapper implements IAppointmentMapper {
         appointmentEntity.setDescription(appointment.getDescription());
         appointmentEntity.setComment(appointment.getComment());
 
-        if (appointment.hasStatus()) {
-            switch (appointment.getStatus()) {
-                case BOOKED:
-                    appointmentEntity.setStatus(AppointmentStatus.BOOKED);
-                    break;
-                case CANCELLED:
-                    appointmentEntity.setStatus(AppointmentStatus.CANCELLED);
-                    break;
-                default:
-                    appointmentEntity.setStatus(AppointmentStatus.BOOKED);
-            }
-        }
+        if (appointment.hasStatus()) { appointmentEntity.setStatus(mapStatus(appointment.getStatus())); }
 
         extractParticipants(appointmentEntity, appointment);
-
         return appointmentEntity;
     }
 
+    private AppointmentStatus mapStatus(Appointment.AppointmentStatus status) {
+
+        switch (status) {
+            case BOOKED: return AppointmentStatus.BOOKED;
+            case CANCELLED: return AppointmentStatus.CANCELLED;
+            default: throw new MappingException("Onbekende status: " + status);
+        }        
+    }
     private void extractParticipants(AppointmentEntity appointmentEntity, Appointment appointment) {
         for (Appointment.AppointmentParticipantComponent participant : appointment.getParticipant()) {
             if (!participant.hasActor()) {

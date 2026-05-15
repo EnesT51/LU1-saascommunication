@@ -24,8 +24,8 @@ import com.api.RestAPI.application.appointment.interfaces.IAppointmentEventProce
 //     @JmsListener(destination = "${app.queue.name}")
 //     public void receive(String payload) {
 //         try {
-//             appointmentEventProcessor.processAppointmentEvent(payload);
 //             eventStore.store(payload);
+//             appointmentEventProcessor.processAppointmentEvent(payload);
 //             log.info("Received and processed appointment event from ActiveMQ");
 //         } catch (Exception e) {
 //             log.error("Failed to process appointment event from ActiveMQ: {}", e.getMessage(), e);

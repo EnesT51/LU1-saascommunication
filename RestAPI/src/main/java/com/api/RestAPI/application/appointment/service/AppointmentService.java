@@ -3,66 +3,68 @@ package com.api.RestAPI.application.appointment.service;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.api.RestAPI.application.HapiFhir.interfaces.IFhirParser;
+import com.api.RestAPI.application.appointment.component.AppointmentStateHandler;
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentEventProcessor;
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentMapper;
+import com.api.RestAPI.application.appointment.interfaces.IAppointmentStateHandler;
 import com.api.RestAPI.domain.appointment.Interface.IAppointmentRepository;
 import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
+import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
+
+import jakarta.transaction.Transactional;
+
 import org.hl7.fhir.r4.model.Appointment;
 
 @Service
+@Transactional
 public class AppointmentService implements IAppointmentEventProcessor {
 
     private final IAppointmentRepository appointmentRepository;
     private final IAppointmentMapper appointmentMapper;
     private final IFhirParser fhirParser;
+    private final IAppointmentStateHandler stateHandler;
 
     public AppointmentService(
         IAppointmentRepository appointmentRepository,
         IAppointmentMapper appointmentMapper,
-        IFhirParser fhirParser) {
+        IFhirParser fhirParser,
+        IAppointmentStateHandler stateHandler) {
 
         this.appointmentRepository = appointmentRepository;
         this.appointmentMapper = appointmentMapper;
         this.fhirParser = fhirParser;
+        this.stateHandler = stateHandler;
     }
 
     public List<AppointmentEntity> getAppointments(){
         return appointmentRepository.getAppointments();
     }
 
-    public void saveAppointment(String fhirJson) {
-        try {
-            Appointment appointment = fhirParser.parseAppointment(fhirJson);
-            String fhirId = appointment.getIdElement().getIdPart();
+    private String saveAppointment(String fhirJson) {
+        Appointment fhirAppointment = fhirParser.parseAppointment(fhirJson);
+    
+        String fhirId = fhirAppointment.getIdElement().getIdPart();
+        AppointmentEntity appointmentEntity = appointmentMapper.toEntity(fhirAppointment);
+        Optional<AppointmentEntity> existingAppointment = appointmentRepository.findByAppointmentId(fhirId);
+        AppointmentStatus currentStatus = existingAppointment.map(AppointmentEntity::getStatus).orElse(null);
 
-            AppointmentEntity existing = findAppointmentByFhirId(fhirId);
-            if (existing != null && appointment.getStatus() == Appointment.AppointmentStatus.BOOKED) {
-                throw new IllegalStateException("Appointment is already booked");
-            } else if (existing != null && appointment.getStatus() == Appointment.AppointmentStatus.CANCELLED) {
-                updateAppointment(existing, appointment);
-            } else {
-                createAppointment(appointment);
+        if(existingAppointment.isEmpty()){
+            stateHandler.validateCreation(appointmentEntity.getStatus());
+            createAppointment(fhirAppointment);
+            return "Afspraak met ID " + fhirId + " aangemaakt";
+        } else {
+            if(!appointmentEntity.getStatus().equals(existingAppointment.get().getStatus())) {
+                stateHandler.validateTransition(currentStatus, appointmentEntity.getStatus());
             }
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to process FHIR JSON: " + e.getMessage());
+            updateAppointment(existingAppointment.get(), fhirAppointment);
+            return "Afspraak met ID " + fhirId + " bijgewerkt";
         }
     }
-
-    public AppointmentEntity findAppointmentByFhirId(String fhirId) {
-        return appointmentRepository.findByAppointmentId(fhirId).orElse(null);
-    }
-
-    public boolean appointmentExists(String fhirId) {
-        return appointmentRepository.findByAppointmentId(fhirId).isPresent();
-    }
-
     private void createAppointment(Appointment appointment) {
         AppointmentEntity appointmentEntity = appointmentMapper.toEntity(appointment);
-        if (appointmentEntity == null) {
-            throw new IllegalArgumentException("Failed to convert FHIR Appointment to Appointment entity");
-        }
         appointmentRepository.save(appointmentEntity);
     }
 
@@ -73,7 +75,7 @@ public class AppointmentService implements IAppointmentEventProcessor {
     }
 
     @Override
-    public void processAppointmentEvent(String fhirJson) {
-        saveAppointment(fhirJson);
+    public String processAppointmentEvent(String fhirJson) {
+        return saveAppointment(fhirJson);
     }
 }

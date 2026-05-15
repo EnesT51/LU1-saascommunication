@@ -16,7 +16,7 @@ public class FhirParserService implements IFhirParser {
     public FhirParserService(FhirConfig fhirConfig) {
         this.fhirConfig = fhirConfig;
     }
-    public Appointment parseAppointment(String fhirJson) throws Exception {
+    public Appointment parseAppointment(String fhirJson) throws IllegalArgumentException {
 
         IParser parser = fhirConfig.fhirContext().newJsonParser();
         Appointment appointment = parser.parseResource(Appointment.class, fhirJson);
