@@ -5,6 +5,7 @@ import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.Reference;
 import org.springframework.stereotype.Component;
 
+import com.api.RestAPI.application.appointment.dto.AppointmentResponseDto;
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentMapper;
 import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
 import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
@@ -19,8 +20,8 @@ public class AppointmentMapper implements IAppointmentMapper {
         AppointmentEntity appointmentEntity = new AppointmentEntity();
 
         appointmentEntity.setAppointmentId(appointment.getIdElement().getIdPart());
-        appointmentEntity.setStart(appointment.getStart().toInstant());
-        appointmentEntity.setEnd(appointment.getEnd().toInstant());
+        appointmentEntity.setStart(appointment.getStart());
+        appointmentEntity.setEnd(appointment.getEnd());
         appointmentEntity.setDescription(appointment.getDescription());
         appointmentEntity.setComment(appointment.getComment());
 
@@ -28,6 +29,26 @@ public class AppointmentMapper implements IAppointmentMapper {
 
         extractParticipants(appointmentEntity, appointment);
         return appointmentEntity;
+    }
+
+    public AppointmentResponseDto toDto(AppointmentEntity appointmentEntity) {
+        if (appointmentEntity == null) {
+            throw new MappingException("AppointmentEntity mag niet null zijn");
+        }
+        AppointmentResponseDto dto = new AppointmentResponseDto();
+
+        dto.setAppointmentId(appointmentEntity.getAppointmentId());
+        dto.setStart(appointmentEntity.getStart());
+        dto.setEnd(appointmentEntity.getEnd());
+        dto.setDescription(appointmentEntity.getDescription());
+        dto.setComment(appointmentEntity.getComment());
+        dto.setStatus(appointmentEntity.getStatus().name());
+        dto.setPatientId(appointmentEntity.getPatientId());
+        dto.setPatientName(appointmentEntity.getPatientName());
+        dto.setPractitionerId(appointmentEntity.getPractitionerId());
+        dto.setPractitionerName(appointmentEntity.getPractitionerName());
+
+        return dto;
     }
 
     private AppointmentStatus mapStatus(Appointment.AppointmentStatus status) {

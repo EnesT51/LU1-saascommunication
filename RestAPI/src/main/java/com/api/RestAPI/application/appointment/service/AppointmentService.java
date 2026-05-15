@@ -43,39 +43,46 @@ public class AppointmentService implements IAppointmentEventProcessor {
         return appointmentRepository.getAppointments();
     }
 
-    private String saveAppointment(String fhirJson) {
+    private AppointmentEntity saveAppointment(String fhirJson) {
         Appointment fhirAppointment = fhirParser.parseAppointment(fhirJson);
-    
         String fhirId = fhirAppointment.getIdElement().getIdPart();
-        AppointmentEntity appointmentEntity = appointmentMapper.toEntity(fhirAppointment);
-        Optional<AppointmentEntity> existingAppointment = appointmentRepository.findByAppointmentId(fhirId);
-        AppointmentStatus currentStatus = existingAppointment.map(AppointmentEntity::getStatus).orElse(null);
 
-        if(existingAppointment.isEmpty()){
-            stateHandler.validateCreation(appointmentEntity.getStatus());
-            createAppointment(fhirAppointment);
-            return "Afspraak met ID " + fhirId + " aangemaakt";
+        AppointmentEntity newData = appointmentMapper.toEntity(fhirAppointment);
+        Optional<AppointmentEntity> existingOpt = appointmentRepository.findByAppointmentId(fhirId);
+        if (existingOpt.isEmpty()) {
+            stateHandler.validateCreation(newData.getStatus());
+            AppointmentEntity saved = createAppointment(newData);
+            saved.setNewlyCreated(true);
+            return saved;
         } else {
-            if(!appointmentEntity.getStatus().equals(existingAppointment.get().getStatus())) {
-                stateHandler.validateTransition(currentStatus, appointmentEntity.getStatus());
-            }
-            updateAppointment(existingAppointment.get(), fhirAppointment);
-            return "Afspraak met ID " + fhirId + " bijgewerkt";
+            AppointmentEntity existing = existingOpt.get();
+            AppointmentStatus currentStatus = existing.getStatus();
+
+            if (!newData.getStatus().equals(currentStatus)) {stateHandler.validateTransition(currentStatus, newData.getStatus());}
+            AppointmentEntity updated = updateAppointment(existing, newData);
+            updated.setNewlyCreated(false);
+            return updated;
         }
     }
-    private void createAppointment(Appointment appointment) {
-        AppointmentEntity appointmentEntity = appointmentMapper.toEntity(appointment);
-        appointmentRepository.save(appointmentEntity);
+    private AppointmentEntity createAppointment(AppointmentEntity appointmentEntity) {
+        return appointmentRepository.save(appointmentEntity);
     }
 
-    private void updateAppointment(AppointmentEntity existing, Appointment appointment) {
-        AppointmentEntity updated = appointmentMapper.toEntity(appointment);
-        updated.setId(existing.getId());
-        appointmentRepository.save(updated);
+    private AppointmentEntity updateAppointment(AppointmentEntity existing, AppointmentEntity updated) {
+        existing.setStatus(updated.getStatus());
+        existing.setStart(updated.getStart());
+        existing.setEnd(updated.getEnd());
+        existing.setDescription(updated.getDescription());
+        existing.setComment(updated.getComment());
+        existing.setPatientId(updated.getPatientId());
+        existing.setPatientName(updated.getPatientName());
+        existing.setPractitionerId(updated.getPractitionerId());
+        existing.setPractitionerName(updated.getPractitionerName());
+        return appointmentRepository.save(existing);
     }
 
     @Override
-    public String processAppointmentEvent(String fhirJson) {
+    public AppointmentEntity processAppointmentEvent(String fhirJson) {
         return saveAppointment(fhirJson);
     }
 }
