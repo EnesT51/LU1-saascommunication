@@ -13,17 +13,27 @@ import java.lang.reflect.Method;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.openmrs.module.saascommunication.fhir.FhirAppointmentMapper;
-import org.openmrs.module.saascommunication.messaging.ActiveMqPublisher;
+import org.openmrs.module.saascommunication.factory.SaasCommunicationFactory;
+import org.openmrs.module.saascommunication.fhir.AppointmentMapper;
+import org.openmrs.module.saascommunication.messaging.AppointmentPublisher;
 import org.springframework.aop.AfterReturningAdvice;
 
 public class AppointmentPublishAdvice implements AfterReturningAdvice {
 	
 	private final Log log = LogFactory.getLog(this.getClass());
 	
-	private final FhirAppointmentMapper appointmentMapper = new FhirAppointmentMapper();
+	private final AppointmentMapper appointmentMapper;
 	
-	private final ActiveMqPublisher publisher = new ActiveMqPublisher();
+	private final AppointmentPublisher publisher;
+	
+	public AppointmentPublishAdvice() {
+		this(SaasCommunicationFactory.createAppointmentMapper(), SaasCommunicationFactory.createAppointmentPublisher());
+	}
+	
+	public AppointmentPublishAdvice(AppointmentMapper appointmentMapper, AppointmentPublisher publisher) {
+		this.appointmentMapper = appointmentMapper;
+		this.publisher = publisher;
+	}
 	
 	@Override
 	public void afterReturning(Object returnValue, Method method, Object[] args, Object target) {

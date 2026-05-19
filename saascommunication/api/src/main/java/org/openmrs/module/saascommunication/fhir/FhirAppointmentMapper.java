@@ -23,7 +23,7 @@ import org.openmrs.PatientIdentifier;
 import org.openmrs.PersonName;
 import org.openmrs.Provider;
 
-public class FhirAppointmentMapper {
+public class FhirAppointmentMapper implements AppointmentMapper {
 	
 	private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
 	

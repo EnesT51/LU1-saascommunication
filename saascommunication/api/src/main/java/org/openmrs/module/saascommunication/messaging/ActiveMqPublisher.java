@@ -15,7 +15,7 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
-public class ActiveMqPublisher {
+public class ActiveMqPublisher implements AppointmentPublisher {
 	
 	private static final String BROKER_URL = getRequiredEnv("ACTIVEMQ_BROKER_URL");
 	
