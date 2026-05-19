@@ -58,7 +58,6 @@ public class AppointmentService implements IAppointmentEventProcessor {
     private Appointment parseAppointment(String fhirJson) {
         return fhirParser.parseAppointment(fhirJson);
     }
-
     private String extractFhirId(Appointment appointment) {
         return appointment.getIdElement().getIdPart();
     }
