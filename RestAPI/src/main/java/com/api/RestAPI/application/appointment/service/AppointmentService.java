@@ -100,6 +100,7 @@ public class AppointmentService implements IAppointmentEventProcessor {
         existing.setPatientName(updated.getPatientName());
         existing.setPractitionerId(updated.getPractitionerId());
         existing.setPractitionerName(updated.getPractitionerName());
+        existing.setAppointmentId(updated.getAppointmentId());
     }
 
     @Override
