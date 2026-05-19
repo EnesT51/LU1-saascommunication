@@ -1,147 +1,108 @@
-package com.api.RestAPI.domain.appointment.entities;
+package com.api.RestAPI.application.appointment.dto;
 
 import java.util.Date;
-import java.util.UUID;
+
+import org.hl7.fhir.r4.model.Appointment;
 
 import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
-
-@Table(name = "appointment")
-@Entity
-public class AppointmentEntity {
-
-    @Id
-    @GeneratedValue
-    private UUID id;
-
+public class AppointmentResponseDto {
     private String appointmentId;
     private String patientId;
     private String patientName;
     private String practitionerId;
     private String practitionerName;
-
+    private String description;
+    private String comment;
+    private String location;
+    private String status;
+    private boolean newlyCreated;
     private Date start;
     private Date end;
+    private AppointmentStatus appointmentStatus;
 
-    @Transient
-    private boolean newlyCreated;
 
-    private String description;
-    @Column(columnDefinition = "TEXT")
-    private String comment;
-
-    private String location;
-
-    @Enumerated(EnumType.STRING)
-    private AppointmentStatus status;
-
-    public UUID getId() {
-        return id;
+    public AppointmentStatus getAppointmentStatus() {
+        return appointmentStatus;
     }
-    public boolean isNewlyCreated() {
-        return newlyCreated;
-    }
-
     public String getAppointmentId() {
         return appointmentId;
     }
-
     public String getPatientId() {
         return patientId;
     }
-
     public String getPatientName() {
         return patientName;
     }
-
     public String getPractitionerId() {
         return practitionerId;
     }
-
     public String getPractitionerName() {
         return practitionerName;
     }
-
-    public Date getStart() {
-        return start;
-    }
-
-    public Date getEnd() {
-        return end;
-    }
-
     public String getDescription() {
         return description;
     }
-
     public String getComment() {
         return comment;
     }
-
     public String getLocation() {
         return location;
     }
-
-    public AppointmentStatus getStatus() {
+    public String getStatus() {
         return status;
     }
-
-    public void setId(UUID id) {
-        this.id = id;
+    
+    public Date getStart() {
+        return start;
     }
-    public void setNewlyCreated(boolean newlyCreated) {
-        this.newlyCreated = newlyCreated;
-    }   
-
-    public void setAppointmentId(String appointmentId) {
-        this.appointmentId = appointmentId;
+    public Date getEnd() {
+        return end;
     }
-
-    public void setPatientId(String patientId) {
-        this.patientId = patientId;
-    }
-
-    public void setPatientName(String patientName) {
-        this.patientName = patientName;
-    }
-
-    public void setPractitionerId(String practitionerId) {
-        this.practitionerId = practitionerId;
-    }
-
-    public void setPractitionerName(String practitionerName) {
-        this.practitionerName = practitionerName;
-    }
-
     public void setStart(Date start) {
         this.start = start;
     }
-
     public void setEnd(Date end) {
         this.end = end;
     }
-
+    public void setNewlyCreated(boolean newlyCreated) {
+        this.newlyCreated = newlyCreated;
+    }
+    public boolean getNewlyCreated() {
+        return newlyCreated;
+    }
+    public void setAppointmentId(String appointmentId) {
+        this.appointmentId = appointmentId;
+    }
+    public void setPatientId(String patientId) {
+        this.patientId = patientId;
+    }
+    public void setAppointmentStatus(AppointmentStatus appointmentStatus) {
+        this.appointmentStatus = appointmentStatus;
+    }
+    public void setPatientName(String patientName) {
+        this.patientName = patientName;
+    }
+    public void setPractitionerId(String practitionerId) {
+        this.practitionerId = practitionerId;
+    }
+    public void setPractitionerName(String practitionerName) {
+        this.practitionerName = practitionerName;
+    }
     public void setDescription(String description) {
         this.description = description;
     }
-
     public void setComment(String comment) {
         this.comment = comment;
     }
-
     public void setLocation(String location) {
         this.location = location;
     }
-
-    public void setStatus(AppointmentStatus status) {
+    public void setStatus(String status) {
         this.status = status;
     }
+
+
+
+    // Getters en setters
 }

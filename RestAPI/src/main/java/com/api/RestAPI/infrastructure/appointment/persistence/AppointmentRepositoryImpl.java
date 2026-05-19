@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class AppointmentRepositoryImpl implements IAppointmentRepository {
-    
+
     private final JpaAppointmentRepository jpaAppointmentRepository;
 
     public AppointmentRepositoryImpl(JpaAppointmentRepository jpaAppointmentRepository) {
@@ -21,7 +21,19 @@ public class AppointmentRepositoryImpl implements IAppointmentRepository {
     public List<AppointmentEntity> getAppointments() {
         return jpaAppointmentRepository.findAll();
     }
+
     public Optional<AppointmentEntity> findById(UUID id) {
         return jpaAppointmentRepository.findById(id);
     }
+
+    @Override
+    public Optional<AppointmentEntity> findByAppointmentId(String appointmentId) {
+        return jpaAppointmentRepository.findByAppointmentId(appointmentId);
+    }
+
+    @Override
+    public AppointmentEntity save(AppointmentEntity appointment) {
+        return jpaAppointmentRepository.save(appointment);
+    }
 }
+

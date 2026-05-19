@@ -3,66 +3,108 @@ package com.api.RestAPI.application.appointment.service;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.api.RestAPI.application.HapiFhir.interfaces.IFhirParser;
+
+import com.api.RestAPI.application.appointment.interfaces.IAppointmentEventProcessor;
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentMapper;
+import com.api.RestAPI.application.appointment.interfaces.IAppointmentStateHandler;
 import com.api.RestAPI.domain.appointment.Interface.IAppointmentRepository;
 import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
-import com.api.RestAPI.infrastructure.appointment.persistence.JpaAppointmentRepository;
+import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
+
+import jakarta.transaction.Transactional;
+
 import org.hl7.fhir.r4.model.Appointment;
 
 @Service
-public class AppointmentService {
-    
+@Transactional
+public class AppointmentService implements IAppointmentEventProcessor {
+
     private final IAppointmentRepository appointmentRepository;
-    private final JpaAppointmentRepository jpaAppointmentRepository;
     private final IAppointmentMapper appointmentMapper;
     private final IFhirParser fhirParser;
+    private final IAppointmentStateHandler stateHandler;
 
     public AppointmentService(
-        IAppointmentRepository appointmentRepository, 
-        JpaAppointmentRepository jpaAppointmentRepository, 
-        IAppointmentMapper appointmentMapper, 
-        IFhirParser fhirParser) {
-            
+            IAppointmentRepository appointmentRepository,
+            IAppointmentMapper appointmentMapper,
+            IFhirParser fhirParser,
+            IAppointmentStateHandler stateHandler) {
+
         this.appointmentRepository = appointmentRepository;
-        this.jpaAppointmentRepository = jpaAppointmentRepository;
         this.appointmentMapper = appointmentMapper;
         this.fhirParser = fhirParser;
+        this.stateHandler = stateHandler;
     }
 
-    public List<AppointmentEntity> getAppointments(){
+    public List<AppointmentEntity> getAppointments() {
         return appointmentRepository.getAppointments();
     }
-    // public void createAppointment(AppointmentDto appointment){
-    //     // Convert DTO to entity if necessary
-    //     this.CheckIfAppointmentExists(appointment);
-    //     AppointmentEntity appointmentEntity = AppointmentMapper.toEntity(appointment);
-    //     if (appointmentEntity == null) {
-    //         throw new IllegalArgumentException("Failed to convert AppointmentDto to Appointment entity");
-    //     }
-    //     // Set properties from DTO to entity
-    //     jpaAppointmentRepository.save(appointmentEntity);
-    // }
 
-    public void receiveAppointment(String fhirJson) {
-        
-        try{
-            Appointment appointment = fhirParser.parseAppointment(fhirJson);
-            AppointmentEntity appointmentEntity = appointmentMapper.toEntity(appointment, null);
-            if (appointmentEntity == null) {
-                throw new IllegalArgumentException("Failed to convert FHIR Appointment to Appointment entity");
-            }
-            jpaAppointmentRepository.save(appointmentEntity);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to parse FHIR JSON: " + e.getMessage());
+    private AppointmentEntity saveAppointment(String fhirJson) {
+        Appointment fhirAppointment = parseAppointment(fhirJson);
+
+        String fhirId = extractFhirId(fhirAppointment);
+
+        AppointmentEntity newData = appointmentMapper.toEntity(fhirAppointment);
+
+        return appointmentRepository.findByAppointmentId(fhirId)
+                .map(existing -> handleUpdate(existing, newData))
+                .orElseGet(() -> handleCreate(newData));
+    }
+
+    private Appointment parseAppointment(String fhirJson) {
+        return fhirParser.parseAppointment(fhirJson);
+    }
+    private String extractFhirId(Appointment appointment) {
+        return appointment.getIdElement().getIdPart();
+    }
+
+    private AppointmentEntity handleCreate(AppointmentEntity newAppointment) {
+        stateHandler.validateCreation(newAppointment.getStatus());
+
+        AppointmentEntity saved = appointmentRepository.save(newAppointment);
+        saved.setNewlyCreated(true);
+
+        return saved;
+    }
+
+    private AppointmentEntity handleUpdate(AppointmentEntity existing, AppointmentEntity newData) {
+        validateStatusTransition(existing, newData);
+        updateAppointmentFields(existing, newData);
+        AppointmentEntity updated = appointmentRepository.save(existing);
+        updated.setNewlyCreated(false);
+        return updated;
+    }
+
+    private void validateStatusTransition(AppointmentEntity existing, AppointmentEntity newData) {
+
+        AppointmentStatus currentStatus = existing.getStatus();
+        AppointmentStatus newStatus = newData.getStatus();
+
+        if (!currentStatus.equals(newStatus)) {
+            stateHandler.validateTransition(currentStatus, newStatus);
         }
     }
 
-    // private void CheckIfAppointmentExists(AppointmentDto appointment) {
-    //     // Implement logic to check if the appointment already exists
-    //     if(appointment == null) {
-    //         throw new IllegalArgumentException("Appointment cannot be null");
-    //     }
-    // }
+    private void updateAppointmentFields(AppointmentEntity existing, AppointmentEntity updated) {
+
+        existing.setStatus(updated.getStatus());
+        existing.setStart(updated.getStart());
+        existing.setEnd(updated.getEnd());
+        existing.setDescription(updated.getDescription());
+        existing.setComment(updated.getComment());
+        existing.setPatientId(updated.getPatientId());
+        existing.setPatientName(updated.getPatientName());
+        existing.setPractitionerId(updated.getPractitionerId());
+        existing.setPractitionerName(updated.getPractitionerName());
+        existing.setAppointmentId(updated.getAppointmentId());
+    }
+
+    @Override
+    public AppointmentEntity processAppointmentEvent(String fhirJson) {
+        return saveAppointment(fhirJson);
+    }
 }
