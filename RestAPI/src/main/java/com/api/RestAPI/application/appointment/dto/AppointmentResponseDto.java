@@ -1,5 +1,7 @@
 package com.api.RestAPI.application.appointment.dto;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.Date;
 
 import org.hl7.fhir.r4.model.Appointment;
@@ -17,8 +19,8 @@ public class AppointmentResponseDto {
     private String location;
     private String status;
     private boolean newlyCreated;
-    private Date start;
-    private Date end;
+    private Instant start;
+    private Instant end;
     private AppointmentStatus appointmentStatus;
 
 
@@ -53,16 +55,16 @@ public class AppointmentResponseDto {
         return status;
     }
     
-    public Date getStart() {
+    public Instant getStart() {
         return start;
     }
-    public Date getEnd() {
+    public Instant getEnd() {
         return end;
     }
-    public void setStart(Date start) {
+    public void setStart(Instant start) {
         this.start = start;
     }
-    public void setEnd(Date end) {
+    public void setEnd(Instant end) {
         this.end = end;
     }
     public void setNewlyCreated(boolean newlyCreated) {
@@ -102,7 +104,4 @@ public class AppointmentResponseDto {
         this.status = status;
     }
 
-
-
-    // Getters en setters
 }

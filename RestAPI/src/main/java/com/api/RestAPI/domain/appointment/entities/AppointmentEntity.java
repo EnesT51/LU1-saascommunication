@@ -1,5 +1,7 @@
 package com.api.RestAPI.domain.appointment.entities;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.UUID;
 
@@ -28,8 +30,8 @@ public class AppointmentEntity {
     private String practitionerId;
     private String practitionerName;
 
-    private Date start;
-    private Date end;
+    private Instant start;
+    private Instant end;
 
     @Transient
     private boolean newlyCreated;
@@ -70,11 +72,11 @@ public class AppointmentEntity {
         return practitionerName;
     }
 
-    public Date getStart() {
+    public Instant getStart() {
         return start;
     }
 
-    public Date getEnd() {
+    public Instant getEnd() {
         return end;
     }
 
@@ -121,11 +123,11 @@ public class AppointmentEntity {
         this.practitionerName = practitionerName;
     }
 
-    public void setStart(Date start) {
+    public void setStart(Instant start) {
         this.start = start;
     }
 
-    public void setEnd(Date end) {
+    public void setEnd(Instant end) {
         this.end = end;
     }
 

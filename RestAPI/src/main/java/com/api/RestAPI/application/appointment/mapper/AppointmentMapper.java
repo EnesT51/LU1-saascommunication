@@ -9,6 +9,7 @@ import com.api.RestAPI.application.appointment.dto.AppointmentResponseDto;
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentMapper;
 import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
 import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
+import java.time.ZoneOffset;
 
 @Component
 public class AppointmentMapper implements IAppointmentMapper {
@@ -20,8 +21,8 @@ public class AppointmentMapper implements IAppointmentMapper {
         AppointmentEntity appointmentEntity = new AppointmentEntity();
 
         appointmentEntity.setAppointmentId(appointment.getIdElement().getIdPart());
-        appointmentEntity.setStart(appointment.getStart());
-        appointmentEntity.setEnd(appointment.getEnd());
+        appointmentEntity.setStart(appointment.getStart().toInstant());
+        appointmentEntity.setEnd(appointment.getEnd().toInstant());
         appointmentEntity.setDescription(appointment.getDescription());
         appointmentEntity.setComment(appointment.getComment());
 
@@ -62,25 +63,33 @@ public class AppointmentMapper implements IAppointmentMapper {
     private void extractParticipants(AppointmentEntity appointmentEntity, Appointment appointment) {
         for (Appointment.AppointmentParticipantComponent participant : appointment.getParticipant()) {
             if (!participant.hasActor()) {
-                continue;
-            }
+        continue;
+    }
 
-            Reference actorRef = participant.getActor();
-            String reference = actorRef.getReference();
-            String display = actorRef.getDisplay();
+        Reference actorRef = participant.getActor();
+        String reference = actorRef.getReference();
+        String display = actorRef.getDisplay();
 
-            if (reference != null) {
-                if (reference.startsWith("Patient/")) {
-                    appointmentEntity.setPatientId(actorRef.getIdElement().toString());
-                    if (display != null) {
-                        appointmentEntity.setPatientName(display);
-                    }
-                } else if (reference.startsWith("Practitioner/")) {
-                    appointmentEntity.setPractitionerId(actorRef.getIdElement().toString());
-                    if (display != null) {
-                        appointmentEntity.setPractitionerName(display);
-                    }
-                }
+        if (reference == null) {
+            continue;
+        }
+        String[] parts = reference.split("/");
+        if (parts.length != 2) {
+            continue;
+        }
+        String resourceType = parts[0];
+        String resourceId = parts[1];
+        switch (resourceType) {
+
+            case "Patient":
+                appointmentEntity.setPatientId(resourceId);
+                appointmentEntity.setPatientName(display);
+                break;
+
+            case "Practitioner":
+                appointmentEntity.setPractitionerId(resourceId);
+                appointmentEntity.setPractitionerName(display);
+                break;
             }
         }
     }
