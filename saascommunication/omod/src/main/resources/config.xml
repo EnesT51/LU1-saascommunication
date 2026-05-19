@@ -25,15 +25,14 @@
 
 	<aware_of_modules>
 		<aware_of_module>org.openmrs.module.legacyui</aware_of_module>
+		<aware_of_module>org.openmrs.module.appointments</aware_of_module>
 	</aware_of_modules>
 	
 	
-	<!-- AOP
 	<advice>
-		<point>org.openmrs.api.FormService</point>
-		<class>@MODULE_PACKAGE@.advice.DuplicateFormAdvisor</class>
+		<point>org.openmrs.module.appointments.service.AppointmentsService</point>
+		<class>org.openmrs.module.saascommunication.advice.AppointmentPublishAdvice</class>
 	</advice>
-	 /AOP -->
 	
 	
 	<!-- Required Privileges 

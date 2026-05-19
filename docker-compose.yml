@@ -27,6 +27,7 @@ services:
     restart: "unless-stopped"
     depends_on:
       - db
+      - messagequeue
     environment:
       OMRS_DEV_DEBUG_PORT: "5005"
       OMRS_CONFIG_MODULE_WEB_ADMIN: "true"
@@ -36,6 +37,11 @@ services:
       OMRS_CONFIG_CONNECTION_DATABASE: openmrs
       OMRS_CONFIG_CONNECTION_USERNAME: ${OMRS_DB_USER:-openmrs}
       OMRS_CONFIG_CONNECTION_PASSWORD: ${OMRS_DB_PASSWORD:-openmrs}
+      ACTIVEMQ_BROKER_URL: ${ACTIVEMQ_BROKER_URL}
+      ACTIVEMQ_QUEUE_NAME: ${ACTIVEMQ_QUEUE_NAME}
+      ACTIVEMQ_WEB_API_URL: ${ACTIVEMQ_WEB_API_URL}
+      ACTIVEMQ_USERNAME: ${ACTIVEMQ_USERNAME}
+      ACTIVEMQ_PASSWORD: ${ACTIVEMQ_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs"]
       timeout: 5s
@@ -63,15 +69,39 @@ services:
       - db-data:/var/lib/mysql
 
   messagequeue:
-    image: apache/activemq-classic:latest
+    image: apache/activemq-classic:6.1.6
     container_name: activemq-classic-omrs
     hostname: activemq-classic-omrs
     restart: unless-stopped
     environment:
-      - ACTIVEMQ_WEB_USER=admin
-      - ACTIVEMQ_WEB_PASSWORD=admin
+      - ACTIVEMQ_WEB_USER=${ACTIVEMQ_USERNAME}
+      - ACTIVEMQ_WEB_PASSWORD=${ACTIVEMQ_PASSWORD}
     ports:
       - "8161:8161"
+      - "61616:61616"
+
+  restapi:
+    build:
+      context: ./RestAPI
+    restart: "unless-stopped"
+    depends_on:
+      - db
+      - messagequeue
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      ACTIVEMQ_BROKER_URL: ${ACTIVEMQ_BROKER_URL}
+      ACTIVEMQ_QUEUE_NAME: ${ACTIVEMQ_QUEUE_NAME}
+      ACTIVEMQ_USERNAME: ${ACTIVEMQ_USERNAME}
+      ACTIVEMQ_PASSWORD: ${ACTIVEMQ_PASSWORD}
+      JAVA_TOOL_OPTIONS: > 
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+    ports:
+      - "8081:8081"
+      - "5006:5005"
 
 volumes:
   openmrs-data: ~
