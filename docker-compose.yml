@@ -69,7 +69,7 @@ services:
       - db-data:/var/lib/mysql
 
   messagequeue:
-    image: apache/activemq-classic:latest
+    image: apache/activemq-classic:6.1.6
     container_name: activemq-classic-omrs
     hostname: activemq-classic-omrs
     restart: unless-stopped
@@ -96,8 +96,10 @@ services:
       ACTIVEMQ_QUEUE_NAME: ${ACTIVEMQ_QUEUE_NAME}
       ACTIVEMQ_USERNAME: ${ACTIVEMQ_USERNAME}
       ACTIVEMQ_PASSWORD: ${ACTIVEMQ_PASSWORD}
+      JAVA_TOOL_OPTIONS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     ports:
       - "8081:8081"
+      - "5005:5005"
 
 volumes:
   openmrs-data: ~

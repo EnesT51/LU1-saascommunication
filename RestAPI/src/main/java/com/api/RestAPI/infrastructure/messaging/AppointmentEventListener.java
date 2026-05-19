@@ -6,29 +6,30 @@ import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
 
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentEventProcessor;
-// import com.api.RestAPI.application.messaging.AppointmentEventStore;
+import com.api.RestAPI.application.messaging.AppointmentEventStore;
 
-// @Component
-// public class AppointmentEventListener {
+@Component
+public class AppointmentEventListener {
 
-//     private static final Logger log = LoggerFactory.getLogger(AppointmentEventListener.class);
+    private static final Logger log = LoggerFactory.getLogger(AppointmentEventListener.class);
 
-//     private final IAppointmentEventProcessor appointmentEventProcessor;
-//     private final AppointmentEventStore eventStore;
+    private final IAppointmentEventProcessor appointmentEventProcessor;
+    private final AppointmentEventStore eventStore;
 
-//     public AppointmentEventListener(IAppointmentEventProcessor appointmentEventProcessor, AppointmentEventStore eventStore) {
-//         this.appointmentEventProcessor = appointmentEventProcessor;
-//         this.eventStore = eventStore;
-//     }
+    public AppointmentEventListener(IAppointmentEventProcessor appointmentEventProcessor, AppointmentEventStore eventStore) {
+        this.appointmentEventProcessor = appointmentEventProcessor;
+        this.eventStore = eventStore;
+    }
 
-//     @JmsListener(destination = "${app.queue.name}")
-//     public void receive(String payload) {
-//         try {
-//             eventStore.store(payload);
-//             appointmentEventProcessor.processAppointmentEvent(payload);
-//             log.info("Received and processed appointment event from ActiveMQ");
-//         } catch (Exception e) {
-//             log.error("Failed to process appointment event from ActiveMQ: {}", e.getMessage(), e);
-//         }
-//     }
-// }
+    @JmsListener(destination = "${app.queue.name}")
+    public void receive(String payload) {
+        try {
+            eventStore.store(payload);
+            appointmentEventProcessor.processAppointmentEvent(payload);
+            log.info("Received and processed appointment event from ActiveMQ");
+        } catch (Exception e) {
+            log.error("Failed to process appointment event from ActiveMQ: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to process appointment event", e);
+        }
+    }
+}
