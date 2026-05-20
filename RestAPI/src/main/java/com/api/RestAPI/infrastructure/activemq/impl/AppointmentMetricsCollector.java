@@ -1,11 +1,11 @@
-package com.api.RestAPI.infrastructure.messaging.impl;
+package com.api.RestAPI.infrastructure.activemq.impl;
 
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.stereotype.Component;
 
-import com.api.RestAPI.application.messaging.interfaces.MetricsCollector;
+import com.api.RestAPI.application.notification.interfaces.MetricsCollector;
 
 @Component
 public class AppointmentMetricsCollector implements MetricsCollector {

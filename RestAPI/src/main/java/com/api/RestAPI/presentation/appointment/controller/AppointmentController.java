@@ -1,12 +1,9 @@
 package com.api.RestAPI.presentation.appointment.controller;
 
-import java.util.List;
-
 import com.api.RestAPI.application.appointment.dto.AppointmentResponseDto;
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentEventProcessor;
 // import com.api.RestAPI.application.messaging.AppointmentEventStore;
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentMapper;
-import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,22 +17,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class AppointmentController {
 
     private final IAppointmentEventProcessor appointmentService;
-    private final IAppointmentMapper mapper;
-    // private final AppointmentEventStore eventStore;
 
-    public AppointmentController(IAppointmentEventProcessor appointmentService, IAppointmentMapper mapper) {
+    public AppointmentController(IAppointmentEventProcessor appointmentService) {
         this.appointmentService = appointmentService;
-        this.mapper = mapper;
-        // this.eventStore = eventStore;
     }
 
     @PostMapping("/save")
     public ResponseEntity<AppointmentResponseDto> saveAppointment(@RequestBody String fhirJson) {
-        AppointmentEntity response = appointmentService.processAppointmentEvent(fhirJson);
-        AppointmentResponseDto mappedAppointment = mapper.toDto(response);
+        AppointmentResponseDto response = appointmentService.processAppointmentEvent(fhirJson);
+        
+        HttpStatus status = response.getNewlyCreated() ? HttpStatus.CREATED : HttpStatus.OK;
 
-        HttpStatus status = response.isNewlyCreated() ? HttpStatus.CREATED : HttpStatus.OK;
-
-        return ResponseEntity.status(status).body(mappedAppointment);
+        return ResponseEntity.status(status).body(response);
     }
 }

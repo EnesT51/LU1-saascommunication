@@ -1,4 +1,4 @@
-package com.api.RestAPI.application.messaging;
+package com.api.RestAPI.application.notification;
 
 import java.time.Instant;
 import java.util.Map;
@@ -6,9 +6,9 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.api.RestAPI.application.messaging.interfaces.MetricsCollector;
-import com.api.RestAPI.application.messaging.interfaces.SnapshotBuilder;
-import com.api.RestAPI.domain.messaging.Interface.EventStore;
+import com.api.RestAPI.application.notification.interfaces.MetricsCollector;
+import com.api.RestAPI.application.notification.interfaces.SnapshotBuilder;
+import com.api.RestAPI.domain.notification.Interface.EventStore;
 
 @Component
 public class AppointmentEventStore {

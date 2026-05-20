@@ -1,4 +1,4 @@
-package com.api.RestAPI.application.messaging.interfaces;
+package com.api.RestAPI.application.notification.interfaces;
 
 import java.time.Instant;
 

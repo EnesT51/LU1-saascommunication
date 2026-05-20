@@ -1,6 +1,6 @@
-package com.api.RestAPI.domain.appointment.entities;
+package com.api.RestAPI.infrastructure.appointment.persistence.entities;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.UUID;
 
 import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
@@ -28,8 +28,10 @@ public class AppointmentEntity {
     private String practitionerId;
     private String practitionerName;
 
-    private Date start;
-    private Date end;
+    private Instant start;
+    private Instant end;
+
+    private String patientPhoneNumber;
 
     @Transient
     private boolean newlyCreated;
@@ -38,6 +40,7 @@ public class AppointmentEntity {
     @Column(columnDefinition = "TEXT")
     private String comment;
 
+    private String locationId;
     private String location;
 
     @Enumerated(EnumType.STRING)
@@ -49,7 +52,9 @@ public class AppointmentEntity {
     public boolean isNewlyCreated() {
         return newlyCreated;
     }
-
+    public String getPatientPhoneNumber() {
+        return patientPhoneNumber;
+    }
     public String getAppointmentId() {
         return appointmentId;
     }
@@ -70,11 +75,11 @@ public class AppointmentEntity {
         return practitionerName;
     }
 
-    public Date getStart() {
+    public Instant getStart() {
         return start;
     }
 
-    public Date getEnd() {
+    public Instant getEnd() {
         return end;
     }
 
@@ -88,6 +93,10 @@ public class AppointmentEntity {
 
     public String getLocation() {
         return location;
+    }
+
+    public String getLocationId() {
+        return locationId;
     }
 
     public AppointmentStatus getStatus() {
@@ -121,11 +130,11 @@ public class AppointmentEntity {
         this.practitionerName = practitionerName;
     }
 
-    public void setStart(Date start) {
+    public void setStart(Instant start) {
         this.start = start;
     }
 
-    public void setEnd(Date end) {
+    public void setEnd(Instant end) {
         this.end = end;
     }
 
@@ -141,7 +150,27 @@ public class AppointmentEntity {
         this.location = location;
     }
 
+    public void setLocationId(String locationId) {
+        this.locationId = locationId;
+    }
+
     public void setStatus(AppointmentStatus status) {
         this.status = status;
+    }
+    public void setPatientPhoneNumber(String patientPhoneNumber) {
+        this.patientPhoneNumber = patientPhoneNumber;
+    }
+    public void updateFrom(AppointmentEntity updated) {
+
+        this.status = updated.status;
+        this.start = updated.start;
+        this.end = updated.end;
+        this.description = updated.description;
+        this.comment = updated.comment;
+        this.patientId = updated.patientId;
+        this.patientName = updated.patientName;
+        this.practitionerId = updated.practitionerId;
+        this.practitionerName = updated.practitionerName;
+        this.appointmentId = updated.appointmentId;
     }
 }

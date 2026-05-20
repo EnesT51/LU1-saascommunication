@@ -2,13 +2,16 @@ package com.api.RestAPI.application.appointment.mapper;
 
 import org.hibernate.MappingException;
 import org.hl7.fhir.r4.model.Appointment;
+import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.StringType;
 import org.springframework.stereotype.Component;
 
 import com.api.RestAPI.application.appointment.dto.AppointmentResponseDto;
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentMapper;
-import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
 import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
+import com.api.RestAPI.infrastructure.appointment.persistence.entities.AppointmentEntity;
+
 
 @Component
 public class AppointmentMapper implements IAppointmentMapper {
@@ -20,8 +23,8 @@ public class AppointmentMapper implements IAppointmentMapper {
         AppointmentEntity appointmentEntity = new AppointmentEntity();
 
         appointmentEntity.setAppointmentId(appointment.getIdElement().getIdPart());
-        appointmentEntity.setStart(appointment.getStart());
-        appointmentEntity.setEnd(appointment.getEnd());
+        appointmentEntity.setStart(appointment.getStart().toInstant());
+        appointmentEntity.setEnd(appointment.getEnd().toInstant());
         appointmentEntity.setDescription(appointment.getDescription());
         appointmentEntity.setComment(appointment.getComment());
 
@@ -36,18 +39,7 @@ public class AppointmentMapper implements IAppointmentMapper {
             throw new MappingException("AppointmentEntity mag niet null zijn");
         }
         AppointmentResponseDto dto = new AppointmentResponseDto();
-
-        dto.setAppointmentId(appointmentEntity.getAppointmentId());
-        dto.setStart(appointmentEntity.getStart());
-        dto.setEnd(appointmentEntity.getEnd());
-        dto.setDescription(appointmentEntity.getDescription());
-        dto.setComment(appointmentEntity.getComment());
-        dto.setStatus(appointmentEntity.getStatus().name());
-        dto.setPatientId(appointmentEntity.getPatientId());
-        dto.setPatientName(appointmentEntity.getPatientName());
-        dto.setPractitionerId(appointmentEntity.getPractitionerId());
-        dto.setPractitionerName(appointmentEntity.getPractitionerName());
-
+        dto.toDto(appointmentEntity);
         return dto;
     }
 
@@ -60,27 +52,72 @@ public class AppointmentMapper implements IAppointmentMapper {
         }        
     }
     private void extractParticipants(AppointmentEntity appointmentEntity, Appointment appointment) {
+
         for (Appointment.AppointmentParticipantComponent participant : appointment.getParticipant()) {
+
             if (!participant.hasActor()) {
                 continue;
             }
 
             Reference actorRef = participant.getActor();
+
             String reference = actorRef.getReference();
+
+            if (reference == null || reference.isBlank()) {
+                continue;
+            }
+
             String display = actorRef.getDisplay();
 
-            if (reference != null) {
-                if (reference.startsWith("Patient/")) {
-                    appointmentEntity.setPatientId(actorRef.getIdElement().toString());
+            String[] parts = reference.split("/");
+
+            if (parts.length != 2) {
+                continue;
+            }
+
+            String resourceType = parts[0];
+            String resourceId = parts[1];
+
+            switch (resourceType) {
+
+                case "Patient":
+                    appointmentEntity.setPatientId(resourceId);
+
                     if (display != null) {
                         appointmentEntity.setPatientName(display);
                     }
-                } else if (reference.startsWith("Practitioner/")) {
-                    appointmentEntity.setPractitionerId(actorRef.getIdElement().toString());
+                    break;
+
+                case "Practitioner":
+                    appointmentEntity.setPractitionerId(resourceId);
+
                     if (display != null) {
                         appointmentEntity.setPractitionerName(display);
                     }
-                }
+                    break;
+
+                case "Location":
+                    appointmentEntity.setLocationId(resourceId);
+
+                    if (display != null) {
+                        appointmentEntity.setLocation(display);
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        extractPhoneNumber(appointmentEntity, appointment);
+    }
+    private void extractPhoneNumber(AppointmentEntity appointmentEntity, Appointment appointment) {
+
+        for (Extension extension : appointment.getExtension()) {
+
+            if ("patientPhone".equals(extension.getUrl())
+                    && extension.getValue() instanceof StringType stringType) {
+
+                appointmentEntity.setPatientPhoneNumber(stringType.getValue());
             }
         }
     }

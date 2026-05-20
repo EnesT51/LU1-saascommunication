@@ -1,7 +1,7 @@
 package com.api.RestAPI.application.appointment.interfaces;
 
-import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
+import com.api.RestAPI.application.appointment.dto.AppointmentResponseDto;
 
 public interface IAppointmentEventProcessor {
-     AppointmentEntity processAppointmentEvent(String fhirJson);
+     AppointmentResponseDto processAppointmentEvent(String fhirJson);
 }

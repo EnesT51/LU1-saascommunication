@@ -1,4 +1,4 @@
-package com.api.RestAPI.domain.messaging.Interface;
+package com.api.RestAPI.domain.notification.Interface;
 
 import java.util.List;
 

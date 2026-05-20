@@ -1,10 +1,9 @@
 package com.api.RestAPI.application.appointment.dto;
 
-import java.util.Date;
-
-import org.hl7.fhir.r4.model.Appointment;
+import java.time.Instant;
 
 import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
+import com.api.RestAPI.infrastructure.appointment.persistence.entities.AppointmentEntity;
 
 public class AppointmentResponseDto {
     private String appointmentId;
@@ -15,15 +14,21 @@ public class AppointmentResponseDto {
     private String description;
     private String comment;
     private String location;
+    private String locationId;
+    private String patientPhoneNumber;
     private String status;
     private boolean newlyCreated;
-    private Date start;
-    private Date end;
+    private Instant start;
+    private Instant end;
+    private boolean isNewlyCreated;
     private AppointmentStatus appointmentStatus;
 
 
     public AppointmentStatus getAppointmentStatus() {
         return appointmentStatus;
+    }
+    public boolean getNewlyCreated() {
+        return newlyCreated;
     }
     public String getAppointmentId() {
         return appointmentId;
@@ -40,6 +45,12 @@ public class AppointmentResponseDto {
     public String getPractitionerName() {
         return practitionerName;
     }
+    public String getLocationId() {
+        return locationId;
+    }
+    public String getPatientPhoneNumber() {
+        return patientPhoneNumber;
+    }
     public String getDescription() {
         return description;
     }
@@ -53,23 +64,26 @@ public class AppointmentResponseDto {
         return status;
     }
     
-    public Date getStart() {
+    public Instant getStart() {
         return start;
     }
-    public Date getEnd() {
+    public Instant getEnd() {
         return end;
-    }
-    public void setStart(Date start) {
-        this.start = start;
-    }
-    public void setEnd(Date end) {
-        this.end = end;
     }
     public void setNewlyCreated(boolean newlyCreated) {
         this.newlyCreated = newlyCreated;
     }
-    public boolean getNewlyCreated() {
-        return newlyCreated;
+    public void setLocationId(String locationId) {
+        this.locationId = locationId;
+    }
+    public void setPatientPhoneNumber(String patientPhoneNumber) {
+        this.patientPhoneNumber = patientPhoneNumber;
+    }
+    public void setStart(Instant start) {
+        this.start = start;
+    }
+    public void setEnd(Instant end) {
+        this.end = end;
     }
     public void setAppointmentId(String appointmentId) {
         this.appointmentId = appointmentId;
@@ -101,8 +115,20 @@ public class AppointmentResponseDto {
     public void setStatus(String status) {
         this.status = status;
     }
+    public void toDto(AppointmentEntity dto) {
+        this.appointmentId = dto.getAppointmentId();
+        this.patientId = dto.getPatientId();
+        this.patientName = dto.getPatientName();
+        this.practitionerId = dto.getPractitionerId();
+        this.practitionerName = dto.getPractitionerName();
+        this.description = dto.getDescription();
+        this.comment = dto.getComment();
+        this.location = dto.getLocation();
+        this.locationId = dto.getLocationId();
+        this.patientPhoneNumber = dto.getPatientPhoneNumber();
+        this.status = dto.getStatus().toString();
+        this.start = dto.getStart();
+        this.end = dto.getEnd();
+    }
 
-
-
-    // Getters en setters
 }
