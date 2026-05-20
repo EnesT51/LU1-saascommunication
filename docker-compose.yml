@@ -79,7 +79,7 @@ services:
     ports:
       - "8161:8161"
       - "61616:61616"
-
+  
   restapi:
     build:
       context: ./RestAPI
@@ -88,6 +88,7 @@ services:
       - db
       - messagequeue
     environment:
+      API_KEY: ${API_KEY}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}

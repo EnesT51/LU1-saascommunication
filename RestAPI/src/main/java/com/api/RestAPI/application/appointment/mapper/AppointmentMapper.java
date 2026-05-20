@@ -2,14 +2,16 @@ package com.api.RestAPI.application.appointment.mapper;
 
 import org.hibernate.MappingException;
 import org.hl7.fhir.r4.model.Appointment;
+import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.StringType;
 import org.springframework.stereotype.Component;
 
 import com.api.RestAPI.application.appointment.dto.AppointmentResponseDto;
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentMapper;
-import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
 import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
-import java.time.ZoneOffset;
+import com.api.RestAPI.infrastructure.appointment.persistence.entities.AppointmentEntity;
+
 
 @Component
 public class AppointmentMapper implements IAppointmentMapper {
@@ -37,18 +39,7 @@ public class AppointmentMapper implements IAppointmentMapper {
             throw new MappingException("AppointmentEntity mag niet null zijn");
         }
         AppointmentResponseDto dto = new AppointmentResponseDto();
-
-        dto.setAppointmentId(appointmentEntity.getAppointmentId());
-        dto.setStart(appointmentEntity.getStart());
-        dto.setEnd(appointmentEntity.getEnd());
-        dto.setDescription(appointmentEntity.getDescription());
-        dto.setComment(appointmentEntity.getComment());
-        dto.setStatus(appointmentEntity.getStatus().name());
-        dto.setPatientId(appointmentEntity.getPatientId());
-        dto.setPatientName(appointmentEntity.getPatientName());
-        dto.setPractitionerId(appointmentEntity.getPractitionerId());
-        dto.setPractitionerName(appointmentEntity.getPractitionerName());
-
+        dto.toDto(appointmentEntity);
         return dto;
     }
 
@@ -61,35 +52,72 @@ public class AppointmentMapper implements IAppointmentMapper {
         }        
     }
     private void extractParticipants(AppointmentEntity appointmentEntity, Appointment appointment) {
+
         for (Appointment.AppointmentParticipantComponent participant : appointment.getParticipant()) {
+
             if (!participant.hasActor()) {
-        continue;
+                continue;
+            }
+
+            Reference actorRef = participant.getActor();
+
+            String reference = actorRef.getReference();
+
+            if (reference == null || reference.isBlank()) {
+                continue;
+            }
+
+            String display = actorRef.getDisplay();
+
+            String[] parts = reference.split("/");
+
+            if (parts.length != 2) {
+                continue;
+            }
+
+            String resourceType = parts[0];
+            String resourceId = parts[1];
+
+            switch (resourceType) {
+
+                case "Patient":
+                    appointmentEntity.setPatientId(resourceId);
+
+                    if (display != null) {
+                        appointmentEntity.setPatientName(display);
+                    }
+                    break;
+
+                case "Practitioner":
+                    appointmentEntity.setPractitionerId(resourceId);
+
+                    if (display != null) {
+                        appointmentEntity.setPractitionerName(display);
+                    }
+                    break;
+
+                case "Location":
+                    appointmentEntity.setLocationId(resourceId);
+
+                    if (display != null) {
+                        appointmentEntity.setLocation(display);
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        extractPhoneNumber(appointmentEntity, appointment);
     }
+    private void extractPhoneNumber(AppointmentEntity appointmentEntity, Appointment appointment) {
 
-        Reference actorRef = participant.getActor();
-        String reference = actorRef.getReference();
-        String display = actorRef.getDisplay();
+        for (Extension extension : appointment.getExtension()) {
 
-        if (reference == null) {
-            continue;
-        }
-        String[] parts = reference.split("/");
-        if (parts.length != 2) {
-            continue;
-        }
-        String resourceType = parts[0];
-        String resourceId = parts[1];
-        switch (resourceType) {
+            if ("patientPhone".equals(extension.getUrl())
+                    && extension.getValue() instanceof StringType stringType) {
 
-            case "Patient":
-                appointmentEntity.setPatientId(resourceId);
-                appointmentEntity.setPatientName(display);
-                break;
-
-            case "Practitioner":
-                appointmentEntity.setPractitionerId(resourceId);
-                appointmentEntity.setPractitionerName(display);
-                break;
+                appointmentEntity.setPatientPhoneNumber(stringType.getValue());
             }
         }
     }

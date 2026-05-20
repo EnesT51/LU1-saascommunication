@@ -1,4 +1,4 @@
-package com.api.RestAPI.infrastructure.messaging;
+package com.api.RestAPI.infrastructure.activemq;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,7 +6,7 @@ import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
 
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentEventProcessor;
-import com.api.RestAPI.application.messaging.AppointmentEventStore;
+import com.api.RestAPI.application.notification.AppointmentEventStore;
 
 @Component
 public class AppointmentEventListener {
