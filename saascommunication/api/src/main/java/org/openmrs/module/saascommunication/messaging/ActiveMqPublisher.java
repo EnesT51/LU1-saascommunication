@@ -1,6 +1,13 @@
+/**
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.saascommunication.messaging;
-
-import org.apache.activemq.ActiveMQConnectionFactory;
 
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -15,7 +22,13 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
-public class ActiveMqPublisher {
+import org.apache.activemq.ActiveMQConnectionFactory;
+
+/**
+ * Publishes FHIR Appointment messages to ActiveMQ with retry and exponential backoff. Falls back to
+ * HTTP web API when all JMS attempts fail.
+ */
+public class ActiveMqPublisher implements AppointmentPublisher {
 	
 	private static final String BROKER_URL = getRequiredEnv("ACTIVEMQ_BROKER_URL");
 	
@@ -27,12 +40,42 @@ public class ActiveMqPublisher {
 	
 	private static final String WEB_API_PASSWORD = getRequiredEnv("ACTIVEMQ_PASSWORD");
 	
-	public void publishAppointment(String payload) throws Exception {
-		try {
-			publishViaJms(payload);
+	private static final int MAX_JMS_RETRIES = 3;
+	
+	private static final long BASE_DELAY_MS = 1000;
+	
+	private final MessageTracker tracker;
+	
+	public ActiveMqPublisher(MessageTracker tracker) {
+		this.tracker = tracker;
+	}
+	
+	@Override
+	public void publishAppointment(String messageId, String payload) throws Exception {
+		Exception lastJmsException = null;
+		
+		for (int attempt = 1; attempt <= MAX_JMS_RETRIES; attempt++) {
+			try {
+				publishViaJms(payload);
+				return;
+			}
+			catch (Exception e) {
+				lastJmsException = e;
+				tracker.logAckError(messageId, extractId(payload), attempt, e);
+				
+				if (attempt < MAX_JMS_RETRIES) {
+					sleepWithBackoff(attempt);
+				}
+			}
 		}
-		catch (Exception jmsException) {
+		
+		// All JMS retries exhausted — fall back to HTTP
+		try {
 			publishViaWebApi(payload);
+		}
+		catch (Exception httpException) {
+			throw new Exception("Publish mislukt na " + MAX_JMS_RETRIES
+			        + " JMS pogingen en HTTP fallback. Laatste JMS fout: " + lastJmsException.getMessage(), httpException);
 		}
 	}
 	
@@ -65,11 +108,9 @@ public class ActiveMqPublisher {
 			if (producer != null) {
 				producer.close();
 			}
-			
 			if (session != null) {
 				session.close();
 			}
-			
 			if (connection != null) {
 				connection.close();
 			}
@@ -100,7 +141,7 @@ public class ActiveMqPublisher {
 			
 			int responseCode = connection.getResponseCode();
 			if (responseCode < 200 || responseCode >= 300) {
-				throw new IllegalStateException("ActiveMQ web API returned status " + responseCode);
+				throw new IllegalStateException("HTTP fallback gaf status " + responseCode);
 			}
 		}
 		finally {
@@ -110,6 +151,26 @@ public class ActiveMqPublisher {
 		}
 	}
 	
+	private void sleepWithBackoff(int attempt) {
+		try {
+			long delay = BASE_DELAY_MS * (1L << (attempt - 1));
+			Thread.sleep(delay);
+		}
+		catch (InterruptedException ie) {
+			Thread.currentThread().interrupt();
+		}
+	}
+	
+	private String extractId(String payload) {
+		int idIdx = payload.indexOf("\"id\":\"");
+		if (idIdx < 0) {
+			return "unknown";
+		}
+		int start = idIdx + 6;
+		int end = payload.indexOf("\"", start);
+		return end > start ? payload.substring(start, end) : "unknown";
+	}
+	
 	private String getBasicAuthToken() {
 		String credentials = WEB_API_USERNAME + ":" + WEB_API_PASSWORD;
 		return Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
@@ -117,13 +178,9 @@ public class ActiveMqPublisher {
 	
 	private static String getRequiredEnv(String key) {
 		String value = System.getenv(key);
-		if (isNullOrEmpty(value)) {
-			throw new IllegalStateException("Missing required environment variable: " + key);
+		if (value == null || value.trim().isEmpty()) {
+			throw new IllegalStateException("Verplichte environment variable ontbreekt: " + key);
 		}
 		return value;
-	}
-	
-	private static boolean isNullOrEmpty(String value) {
-		return value == null || value.trim().length() == 0;
 	}
 }
