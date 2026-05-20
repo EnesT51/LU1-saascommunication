@@ -96,6 +96,7 @@ services:
       - db
       - messagequeue
     environment:
+      USER_PASSWORD: ${USER_PASSWORD}
       API_KEY: ${API_KEY}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}

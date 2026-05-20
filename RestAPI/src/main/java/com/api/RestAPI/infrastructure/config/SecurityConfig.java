@@ -1,5 +1,6 @@
 package com.api.RestAPI.infrastructure.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import com.api.RestAPI.infrastructure.security.ApiKeyAuthenticationFilter;
@@ -15,12 +16,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class SecurityConfig {
 
+
+    @Value("${security.user.password}")
+    private String password;
+
     private final ApiKeyAuthenticationFilter apiKeyFilter;
 
     public SecurityConfig(ApiKeyAuthenticationFilter apiKeyFilter) {
         this.apiKeyFilter = apiKeyFilter;
     }
-
 
     @Bean
     public SecurityFilterChain securityFilterChain( HttpSecurity http) 
@@ -50,7 +54,7 @@ public class SecurityConfig {
     public UserDetailsService userDetailsService() {
         UserDetails user = User.builder()
                 .username("user")
-                .password("{noop}ourpassword")
+                .password("{noop}" + this.password) // {noop} indicates that the password is stored in plain text
                 .build();
         return new InMemoryUserDetailsManager(user);
     }
