@@ -15,24 +15,34 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.module.saascommunication.factory.SaasCommunicationFactory;
 import org.openmrs.module.saascommunication.fhir.AppointmentMapper;
+import org.openmrs.module.saascommunication.fhir.FhirMessageValidator;
 import org.openmrs.module.saascommunication.messaging.AppointmentPublisher;
+import org.openmrs.module.saascommunication.messaging.MessageTracker;
 import org.springframework.aop.AfterReturningAdvice;
 
 public class AppointmentPublishAdvice implements AfterReturningAdvice {
 	
-	private final Log log = LogFactory.getLog(this.getClass());
+	private final Log log = LogFactory.getLog(getClass());
 	
 	private final AppointmentMapper appointmentMapper;
 	
 	private final AppointmentPublisher publisher;
 	
+	private final FhirMessageValidator validator;
+	
+	private final MessageTracker tracker;
+	
 	public AppointmentPublishAdvice() {
-		this(SaasCommunicationFactory.createAppointmentMapper(), SaasCommunicationFactory.createAppointmentPublisher());
+		this(SaasCommunicationFactory.createAppointmentMapper(), SaasCommunicationFactory.createAppointmentPublisher(),
+		        SaasCommunicationFactory.createFhirMessageValidator(), SaasCommunicationFactory.createMessageTracker());
 	}
 	
-	public AppointmentPublishAdvice(AppointmentMapper appointmentMapper, AppointmentPublisher publisher) {
+	public AppointmentPublishAdvice(AppointmentMapper appointmentMapper, AppointmentPublisher publisher,
+	    FhirMessageValidator validator, MessageTracker tracker) {
 		this.appointmentMapper = appointmentMapper;
 		this.publisher = publisher;
+		this.validator = validator;
+		this.tracker = tracker;
 	}
 	
 	@Override
@@ -41,13 +51,34 @@ public class AppointmentPublishAdvice implements AfterReturningAdvice {
 			return;
 		}
 		
+		String appointmentId = getAppointmentIdentifier(returnValue);
+		String messageId = tracker.generateMessageId();
+		
 		try {
 			String payload = appointmentMapper.toFhirJson(returnValue);
-			publisher.publishAppointment(payload);
-			log.info("Published appointment " + getAppointmentIdentifier(returnValue) + " to ActiveMQ");
+			
+			// HL7-eis: validatie van structuur en verplichte velden
+			validator.validate(payload);
+			
+			// HL7-eis: logging/tracking — bericht wordt verstuurd
+			tracker.logSending(messageId, appointmentId);
+			
+			// HL7-eis: queueing via ActiveMQ met retry
+			publisher.publishAppointment(messageId, payload);
+			
+			// HL7-eis: ACK:AA — bericht succesvol geaccepteerd
+			tracker.logAckAccept(messageId, appointmentId);
+			
 		}
-		catch (Exception e) {
-			log.error("Failed to publish appointment " + getAppointmentIdentifier(returnValue) + " to ActiveMQ", e);
+		catch (IllegalArgumentException validationException) {
+			// Validatie mislukt — niet versturen
+			tracker.logValidationFailure(appointmentId, validationException.getMessage());
+			log.error("FHIR validatie mislukt voor afspraak " + appointmentId + ": " + validationException.getMessage());
+		}
+		catch (Exception publishException) {
+			// ACK:AE wordt per poging gelogd in de publisher; hier loggen we het eindresultaat
+			log.error("Afspraak " + appointmentId + " (messageId=" + messageId
+			        + ") kon niet worden gepubliceerd na alle pogingen: " + publishException.getMessage(), publishException);
 		}
 	}
 	
@@ -56,12 +87,10 @@ public class AppointmentPublishAdvice implements AfterReturningAdvice {
 		if (uuid != null) {
 			return uuid;
 		}
-		
 		String appointmentNumber = invokeString(appointment, "getAppointmentNumber");
 		if (appointmentNumber != null) {
 			return appointmentNumber;
 		}
-		
 		Object appointmentId = invoke(appointment, "getAppointmentId");
 		return appointmentId != null ? String.valueOf(appointmentId) : "unknown-appointment";
 	}

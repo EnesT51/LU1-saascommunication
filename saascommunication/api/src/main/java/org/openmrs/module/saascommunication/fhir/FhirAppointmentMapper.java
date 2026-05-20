@@ -20,8 +20,6 @@ import java.util.TimeZone;
 import org.openmrs.Location;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
-import org.openmrs.PersonName;
-import org.openmrs.Provider;
 
 public class FhirAppointmentMapper implements AppointmentMapper {
 	
@@ -33,67 +31,15 @@ public class FhirAppointmentMapper implements AppointmentMapper {
 		appendField(json, "resourceType", "Appointment");
 		appendField(json, "id", getAppointmentId(appointment));
 		appendField(json, "status", mapStatus(appointment));
-		appendServiceCategory(json, appointment);
-		appendAppointmentType(json, appointment);
-		appendReasonCodes(json, invokeCollection(appointment, "getReasons"));
-		appendField(json, "description", getDescription(appointment));
 		appendDateField(json, "start", invokeDate(appointment, "getStartDateTime"));
 		appendDateField(json, "end", invokeDate(appointment, "getEndDateTime"));
 		appendDateField(json, "created", invokeDate(appointment, "getDateCreated"));
 		appendField(json, "comment", invokeString(appointment, "getComments"));
+		appendPatientContactExtensions(json, appointment);
 		appendParticipants(json, appointment);
 		removeTrailingComma(json);
 		json.append("}");
 		return json.toString();
-	}
-	
-	private void appendServiceCategory(StringBuilder json, Object appointment) {
-		Object service = invoke(appointment, "getService");
-		String serviceName = invokeString(service, "getName");
-		if (isBlank(serviceName)) {
-			return;
-		}
-		
-		json.append("\"serviceCategory\":[{\"text\":\"").append(escape(serviceName)).append("\"}],");
-	}
-	
-	private void appendAppointmentType(StringBuilder json, Object appointment) {
-		Object serviceType = invoke(appointment, "getServiceType");
-		String appointmentType = invokeString(serviceType, "getName");
-		if (isBlank(appointmentType)) {
-			appointmentType = enumName(invoke(appointment, "getStatus"));
-		}
-		if (isBlank(appointmentType)) {
-			return;
-		}
-		
-		json.append("\"appointmentType\":{\"text\":\"").append(escape(appointmentType)).append("\"},");
-	}
-	
-	private void appendReasonCodes(StringBuilder json, Collection<?> reasons) {
-		if (reasons == null || reasons.isEmpty()) {
-			return;
-		}
-		
-		List<String> values = new ArrayList<String>();
-		for (Object reason : reasons) {
-			Object concept = invoke(reason, "getConcept");
-			String display = invokeString(concept, "getDisplayString");
-			if (!isBlank(display)) {
-				values.add(display);
-			}
-		}
-		
-		if (values.isEmpty()) {
-			return;
-		}
-		
-		json.append("\"reasonCode\":[");
-		for (String value : values) {
-			json.append("{\"text\":\"").append(escape(value)).append("\"},");
-		}
-		removeTrailingComma(json);
-		json.append("],");
 	}
 	
 	private void appendParticipants(StringBuilder json, Object appointment) {
@@ -107,11 +53,6 @@ public class FhirAppointmentMapper implements AppointmentMapper {
 		String locationParticipant = buildLocationParticipant(invokeLocation(appointment, "getLocation"));
 		if (locationParticipant != null) {
 			participants.add(locationParticipant);
-		}
-		
-		String providerParticipant = buildProviderParticipant(appointment);
-		if (providerParticipant != null) {
-			participants.add(providerParticipant);
 		}
 		
 		if (participants.isEmpty()) {
@@ -132,12 +73,11 @@ public class FhirAppointmentMapper implements AppointmentMapper {
 		}
 		
 		String referenceId = patient.getUuid() != null ? patient.getUuid() : getPatientIdentifier(patient);
-		String display = getPatientDisplay(patient);
-		if (isBlank(referenceId) && isBlank(display)) {
+		if (isBlank(referenceId)) {
 			return null;
 		}
 		
-		return buildParticipant("Patient/" + defaultString(referenceId, "unknown"), display);
+		return buildParticipant("Patient/" + referenceId, null);
 	}
 	
 	private String buildLocationParticipant(Location location) {
@@ -149,28 +89,6 @@ public class FhirAppointmentMapper implements AppointmentMapper {
 		return buildParticipant("Location/" + referenceId, location.getName());
 	}
 	
-	private String buildProviderParticipant(Object appointment) {
-		Provider provider = invokeProvider(appointment, "getProvider");
-		Collection<?> appointmentProviders = invokeCollection(appointment, "getProviders");
-		
-		if (provider == null && appointmentProviders != null) {
-			for (Object appointmentProvider : appointmentProviders) {
-				Provider candidate = invokeProvider(appointmentProvider, "getProvider");
-				if (candidate != null) {
-					provider = candidate;
-					break;
-				}
-			}
-		}
-		
-		if (provider == null) {
-			return null;
-		}
-		
-		String referenceId = provider.getUuid() != null ? provider.getUuid() : String.valueOf(provider.getProviderId());
-		return buildParticipant("Practitioner/" + referenceId, provider.getName());
-	}
-	
 	private String buildParticipant(String reference, String display) {
 		StringBuilder participant = new StringBuilder();
 		participant.append("{\"actor\":{");
@@ -180,6 +98,49 @@ public class FhirAppointmentMapper implements AppointmentMapper {
 		}
 		participant.append("},\"status\":\"accepted\"}");
 		return participant.toString();
+	}
+	
+	private void appendPatientContactExtensions(StringBuilder json, Object appointment) {
+		Patient patient = invokePatient(appointment, "getPatient");
+		if (patient == null) {
+			return;
+		}
+		
+		String phone = getPersonAttribute(patient, "Phone Number", "Telephone Number", "Mobile Number");
+		
+		if (isBlank(phone)) {
+			return;
+		}
+		
+		json.append("\"extension\":[");
+		json.append("{\"url\":\"patientPhone\",\"valueString\":\"").append(escape(phone)).append("\"}");
+		json.append("],");
+	}
+	
+	private String getPersonAttribute(Patient patient, String... attributeTypeNames) {
+		Collection<?> attributes = invokeCollection(patient, "getActiveAttributes");
+		if (attributes == null) {
+			attributes = invokeCollection(patient, "getAttributes");
+		}
+		if (attributes == null) {
+			return null;
+		}
+		for (Object attr : attributes) {
+			Object attributeType = invoke(attr, "getAttributeType");
+			if (attributeType == null) {
+				continue;
+			}
+			String typeName = invokeString(attributeType, "getName");
+			if (typeName == null) {
+				continue;
+			}
+			for (String sought : attributeTypeNames) {
+				if (sought.equalsIgnoreCase(typeName)) {
+					return invokeString(attr, "getValue");
+				}
+			}
+		}
+		return null;
 	}
 	
 	private void appendField(StringBuilder json, String name, String value) {
@@ -215,23 +176,6 @@ public class FhirAppointmentMapper implements AppointmentMapper {
 		}
 		
 		return "unknown-appointment";
-	}
-	
-	private String getDescription(Object appointment) {
-		Object service = invoke(appointment, "getService");
-		String description = invokeString(service, "getDescription");
-		if (!isBlank(description)) {
-			return description;
-		}
-		return invokeString(service, "getName");
-	}
-	
-	private String getPatientDisplay(Patient patient) {
-		PersonName name = patient.getPersonName();
-		if (name != null && !isBlank(name.getFullName())) {
-			return name.getFullName();
-		}
-		return getPatientIdentifier(patient);
 	}
 	
 	private String getPatientIdentifier(Patient patient) {
@@ -279,10 +223,6 @@ public class FhirAppointmentMapper implements AppointmentMapper {
 		return value == null || value.trim().length() == 0;
 	}
 	
-	private String defaultString(String value, String fallback) {
-		return isBlank(value) ? fallback : value;
-	}
-	
 	private Object invoke(Object target, String methodName) {
 		if (target == null) {
 			return null;
@@ -320,11 +260,6 @@ public class FhirAppointmentMapper implements AppointmentMapper {
 	private Location invokeLocation(Object target, String methodName) {
 		Object value = invoke(target, methodName);
 		return value instanceof Location ? (Location) value : null;
-	}
-	
-	private Provider invokeProvider(Object target, String methodName) {
-		Object value = invoke(target, methodName);
-		return value instanceof Provider ? (Provider) value : null;
 	}
 	
 	private String enumName(Object value) {
