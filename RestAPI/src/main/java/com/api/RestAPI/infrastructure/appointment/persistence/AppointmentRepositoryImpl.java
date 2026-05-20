@@ -1,7 +1,7 @@
 package com.api.RestAPI.infrastructure.appointment.persistence;
 
 import com.api.RestAPI.domain.appointment.Interface.IAppointmentRepository;
-import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
+import com.api.RestAPI.infrastructure.appointment.persistence.entities.AppointmentEntity;
 
 import java.util.List;
 import java.util.Optional;

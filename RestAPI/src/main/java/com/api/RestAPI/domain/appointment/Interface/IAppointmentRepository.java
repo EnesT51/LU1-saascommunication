@@ -3,7 +3,8 @@ package com.api.RestAPI.domain.appointment.Interface;
 import java.util.List;
 import java.util.UUID;
 
-import com.api.RestAPI.domain.appointment.entities.AppointmentEntity;
+import com.api.RestAPI.infrastructure.appointment.persistence.entities.AppointmentEntity;
+
 import java.util.Optional;
 
 

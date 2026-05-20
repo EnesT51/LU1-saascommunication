@@ -1,9 +1,9 @@
-package com.api.RestAPI.application.HapiFhir.services;
+package com.api.RestAPI.infrastructure.HapiFhir.services;
 
 import org.hl7.fhir.r4.model.Appointment;
 import org.springframework.stereotype.Service;
 
-import com.api.RestAPI.application.HapiFhir.interfaces.IFhirParser;
+import com.api.RestAPI.infrastructure.HapiFhir.interfaces.IFhirParser;
 import com.api.RestAPI.infrastructure.config.FhirConfig;
 
 import ca.uhn.fhir.parser.IParser;
