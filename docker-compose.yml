@@ -109,7 +109,7 @@ services:
       JAVA_TOOL_OPTIONS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
         -Djavax.net.ssl.trustStore=/opt/certs/client.ts
-        -Djavax.net.ssl.trustStorePassword=saasdev2026
+        -Djavax.net.ssl.trustStorePassword=${TRUSTSTORE_PASSWORD}
     ports:
       - "8081:8081"
       - "5006:5005"
