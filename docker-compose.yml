@@ -44,7 +44,7 @@ services:
       ACTIVEMQ_PASSWORD: ${ACTIVEMQ_PASSWORD}
       JAVA_TOOL_OPTIONS: >-
         -Djavax.net.ssl.trustStore=/opt/certs/client.ts
-        -Djavax.net.ssl.trustStorePassword=saasdev2026
+        -Djavax.net.ssl.trustStorePassword=${TRUSTSTORE_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs"]
       timeout: 5s
