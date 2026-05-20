@@ -106,7 +106,7 @@ services:
       ACTIVEMQ_QUEUE_NAME: ${ACTIVEMQ_QUEUE_NAME}
       ACTIVEMQ_USERNAME: ${ACTIVEMQ_USERNAME}
       ACTIVEMQ_PASSWORD: ${ACTIVEMQ_PASSWORD}
-      JAVA_TOOL_OPTIONS: >-
+      JAVA_TOOL_OPTIONS: >
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
         -Djavax.net.ssl.trustStore=/opt/certs/client.ts
         -Djavax.net.ssl.trustStorePassword=${TRUSTSTORE_PASSWORD}

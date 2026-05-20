@@ -5,6 +5,10 @@ import org.springframework.context.annotation.Configuration;
 import com.api.RestAPI.infrastructure.security.ApiKeyAuthenticationFilter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -42,5 +46,14 @@ public class SecurityConfig {
             );
         return http.build();
     }
+    @Bean
+    public UserDetailsService userDetailsService() {
+        UserDetails user = User.builder()
+                .username("user")
+                .password("{noop}ourpassword")
+                .build();
+        return new InMemoryUserDetailsManager(user);
+    }
+    
 }
 
