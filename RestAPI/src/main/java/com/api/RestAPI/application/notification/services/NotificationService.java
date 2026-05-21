@@ -26,7 +26,8 @@ public class NotificationService {
             List<Notification> notifications = notificationRepository.findPendingNotifications(NotificationStatus.PENDING, Instant.now());
 
             for (Notification notification : notifications) {
-
+                // dit is een test om te zien of de scheduled taak werkt.
+                System.out.println(notification.getId() + " - " + notification.getAppointmentId() + " - " + notification.getType() + " - " + notification.getStatus() + " - " + notification.getScheduledAt());
                 notificationRepository.save(notification);
             }
             
