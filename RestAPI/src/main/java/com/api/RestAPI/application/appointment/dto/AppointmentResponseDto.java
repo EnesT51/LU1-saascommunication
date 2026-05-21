@@ -106,7 +106,7 @@ public class AppointmentResponseDto {
         this.status = status;
     }
     public void toDto(AppointmentEntity dto) {
-        this.appointmentId = dto.getAppointmentId();
+        this.appointmentId = dto.getAppointmentId().toString();
         this.patientId = dto.getPatientId();
         this.patientName = dto.getPatientName();
         this.practitionerId = dto.getPractitionerId();
