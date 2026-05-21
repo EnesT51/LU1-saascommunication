@@ -3,7 +3,7 @@ package com.api.RestAPI.infrastructure.appointment.persistence.entities;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
+import org.hl7.fhir.r4.model.Appointment.AppointmentStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

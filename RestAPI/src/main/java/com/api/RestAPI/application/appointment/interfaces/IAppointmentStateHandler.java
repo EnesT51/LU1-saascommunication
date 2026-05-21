@@ -1,6 +1,6 @@
 package com.api.RestAPI.application.appointment.interfaces;
 
-import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
+import org.hl7.fhir.r4.model.Appointment.AppointmentStatus;
 
 import jakarta.annotation.Nullable;
 

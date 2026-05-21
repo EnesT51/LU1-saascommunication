@@ -54,7 +54,7 @@ public class SecurityConfig {
     public UserDetailsService userDetailsService() {
         UserDetails user = User.builder()
                 .username("user")
-                .password("{noop}" + this.password) // {noop} indicates that the password is stored in plain text
+                .password(this.password)
                 .build();
         return new InMemoryUserDetailsManager(user);
     }

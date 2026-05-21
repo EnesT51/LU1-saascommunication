@@ -9,13 +9,13 @@ import com.api.RestAPI.application.appointment.interfaces.IAppointmentEventProce
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentMapper;
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentStateHandler;
 import com.api.RestAPI.domain.appointment.Interface.IAppointmentRepository;
-import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
 import com.api.RestAPI.infrastructure.HapiFhir.interfaces.IFhirParser;
 import com.api.RestAPI.infrastructure.HapiFhir.interfaces.IFhirPayloadValidator;
+import com.api.RestAPI.infrastructure.HapiFhir.interfaces.IHapiFhirValidator;
 import com.api.RestAPI.infrastructure.appointment.persistence.entities.AppointmentEntity;
 
 import jakarta.transaction.Transactional;
-
+import org.hl7.fhir.r4.model.Appointment.AppointmentStatus;
 import org.hl7.fhir.r4.model.Appointment;
 
 @Service
@@ -27,22 +27,27 @@ public class AppointmentService implements IAppointmentEventProcessor {
     private final IFhirParser fhirParser;
     private final IAppointmentStateHandler stateHandler;
     private final IFhirPayloadValidator fhirPayloadValidator;
+    private final IHapiFhirValidator officialFhirValidator;
 
     public AppointmentService(
             IAppointmentRepository appointmentRepository,
             IAppointmentMapper appointmentMapper,
             IFhirParser fhirParser,
             IAppointmentStateHandler stateHandler,
-            IFhirPayloadValidator fhirPayloadValidator) {
+            IFhirPayloadValidator fhirPayloadValidator,
+            IHapiFhirValidator officialFhirValidator) {
 
         this.appointmentRepository = appointmentRepository;
         this.appointmentMapper = appointmentMapper;
         this.fhirParser = fhirParser;
         this.stateHandler = stateHandler;
         this.fhirPayloadValidator = fhirPayloadValidator;
+        this.officialFhirValidator = officialFhirValidator;
     }
     @Override
     public AppointmentResponseDto processAppointmentEvent(String fhirJson) {
+        fhirPayloadValidator.validate(fhirJson);
+        officialFhirValidator.validate(fhirJson);
         AppointmentEntity savedAppointment = saveAppointment(fhirJson);
         return appointmentMapper.toDto(savedAppointment);
     }
@@ -52,11 +57,8 @@ public class AppointmentService implements IAppointmentEventProcessor {
     }
 
     private AppointmentEntity saveAppointment(String fhirJson) {
-        fhirPayloadValidator.validate(fhirJson);
         Appointment fhirAppointment = fhirParser.parseAppointment(fhirJson);
-
         String fhirId = fhirAppointment.getIdElement().getIdPart();
-
         AppointmentEntity newData = appointmentMapper.toEntity(fhirAppointment);
 
         return appointmentRepository.findByAppointmentId(fhirId)
