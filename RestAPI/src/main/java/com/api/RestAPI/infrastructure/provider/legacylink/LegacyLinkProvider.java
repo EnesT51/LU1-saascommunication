@@ -11,6 +11,8 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import com.api.RestAPI.application.messageprovider.service.ProviderMessageStatusService;
+
 @Component
 public class LegacyLinkProvider implements MessageProvider {
 
@@ -18,9 +20,14 @@ public class LegacyLinkProvider implements MessageProvider {
 
     private final RestTemplate restTemplate;
     private final LegacyLinkProperties properties;
+    private final ProviderMessageStatusService statusService;
 
-    public LegacyLinkProvider(LegacyLinkProperties properties) {
+    public LegacyLinkProvider(
+        LegacyLinkProperties properties,
+        ProviderMessageStatusService statusService
+    ) {
         this.properties = properties;
+        this.statusService = statusService;
         this.restTemplate = new RestTemplate();
     }
 
@@ -61,12 +68,22 @@ public class LegacyLinkProvider implements MessageProvider {
             LegacyLinkResponse body = response.getBody();
 
             if (body != null && body.getStatusCode() == 200) {
-                logger.info("LegacyLink SMS sent successfully. MessageReference={}", body.getMessageReference());
+                statusService.markAsSent(message.getId(), body.getMessageReference());
+
+                logger.info(
+                        "LegacyLink SMS sent successfully. MessageReference={}",
+                        body.getMessageReference()
+                );
             } else {
-                logger.warn("LegacyLink failed. StatusMessage={}", body != null ? body.getStatusMessage() : "No response body");
+                String error = body != null ? body.getStatusMessage() : "No response body";
+
+                statusService.markAsFailed(message.getId(), error);
+
+                logger.warn("LegacyLink failed. StatusMessage={}", error);
             }
 
         } catch (Exception ex) {
+            statusService.markAsFailed(message.getId(), ex.getMessage());
             logger.error("LegacyLink request failed: {}", ex.getMessage());
             throw ex;
         }

@@ -1,5 +1,6 @@
 package com.api.RestAPI.infrastructure.provider.securepost;
 
+import com.api.RestAPI.application.messageprovider.service.ProviderMessageStatusService;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageProvider;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
@@ -18,9 +19,14 @@ public class SecurePostProvider implements MessageProvider {
 
     private final RestTemplate restTemplate;
     private final SecurePostProperties properties;
+    private final ProviderMessageStatusService statusService;
 
-    public SecurePostProvider(SecurePostProperties properties) {
+    public SecurePostProvider(
+            SecurePostProperties properties,
+            ProviderMessageStatusService statusService
+    ) {
         this.properties = properties;
+        this.statusService = statusService;
         this.restTemplate = new RestTemplate();
     }
 
@@ -31,23 +37,23 @@ public class SecurePostProvider implements MessageProvider {
 
     @Override
     public void send(ProviderMessage message) {
-        String accessToken = authenticate();
-
-        SecurePostMessageRequest request = new SecurePostMessageRequest(
-                "EMAIL",
-                message.getRecipient(),
-                message.getContent(),
-                message.getSubject() != null ? message.getSubject() : "Afspraak notificatie"
-        );
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(accessToken);
-        headers.set("X-STUDENT-GROUP", properties.getStudentGroup());
-
-        HttpEntity<SecurePostMessageRequest> entity = new HttpEntity<>(request, headers);
-
         try {
+            String accessToken = authenticate();
+
+            SecurePostMessageRequest request = new SecurePostMessageRequest(
+                    "EMAIL",
+                    message.getRecipient(),
+                    message.getContent(),
+                    message.getSubject() != null ? message.getSubject() : "Afspraak notificatie"
+            );
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(accessToken);
+            headers.set("X-STUDENT-GROUP", properties.getStudentGroup());
+
+            HttpEntity<SecurePostMessageRequest> entity = new HttpEntity<>(request, headers);
+
             ResponseEntity<SecurePostMessageResponse> response = restTemplate.postForEntity(
                     properties.getMessageUrl(),
                     entity,
@@ -57,13 +63,25 @@ public class SecurePostProvider implements MessageProvider {
             SecurePostMessageResponse body = response.getBody();
 
             if (body != null && body.isDelivered()) {
-                logger.info("SecurePost message delivered. TrackingId={}", body.getTrackingId());
+                statusService.markAsSent(message.getId(), body.getTrackingId());
+
+                logger.info(
+                        "SecurePost message delivered. TrackingId={}",
+                        body.getTrackingId()
+                );
             } else {
-                logger.warn("SecurePost failed. Error={}", body != null ? body.getErrorMessage() : "No response body");
+                String error = body != null ? body.getErrorMessage() : "No response body";
+
+                statusService.markAsFailed(message.getId(), error);
+
+                logger.warn("SecurePost failed. Error={}", error);
             }
 
         } catch (Exception ex) {
+            statusService.markAsFailed(message.getId(), ex.getMessage());
+
             logger.error("SecurePost message request failed: {}", ex.getMessage());
+
             throw ex;
         }
     }

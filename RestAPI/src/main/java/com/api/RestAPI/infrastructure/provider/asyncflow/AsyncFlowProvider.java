@@ -12,6 +12,8 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import com.api.RestAPI.application.messageprovider.service.ProviderMessageStatusService;
+
 @Component
 public class AsyncFlowProvider implements MessageProvider {
 
@@ -19,9 +21,11 @@ public class AsyncFlowProvider implements MessageProvider {
 
     private final RestTemplate restTemplate;
     private final AsyncFlowProperties properties;
+    private final ProviderMessageStatusService statusService;
 
-    public AsyncFlowProvider(AsyncFlowProperties properties) {
+    public AsyncFlowProvider(AsyncFlowProperties properties, ProviderMessageStatusService statusService) {
         this.properties = properties;
+        this.statusService = statusService;
         this.restTemplate = new RestTemplate();
     }
 
@@ -55,12 +59,22 @@ public class AsyncFlowProvider implements MessageProvider {
             AsyncFlowResponse body = response.getBody();
 
             if (body != null && body.isAccepted()) {
-                logger.info("AsyncFlow message accepted. TrackingId={}", body.getTrackingId());
+                statusService.markAsSent(message.getId(), body.getTrackingId());
+
+                logger.info(
+                        "AsyncFlow message accepted. TrackingId={}",
+                        body.getTrackingId()
+                );
             } else {
-                logger.warn("AsyncFlow failed. Message={}", body != null ? body.getMessage() : "No response body");
+                String error = body != null ? body.getMessage() : "No response body";
+
+                statusService.markAsFailed(message.getId(), error);
+
+                logger.warn("AsyncFlow failed. Message={}", error);
             }
 
         } catch (Exception ex) {
+            statusService.markAsFailed(message.getId(), ex.getMessage());
             logger.error("AsyncFlow request failed: {}", ex.getMessage());
             throw ex;
         }

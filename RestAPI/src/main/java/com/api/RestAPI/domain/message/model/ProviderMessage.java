@@ -1,12 +1,13 @@
 package com.api.RestAPI.domain.message.model;
 import com.api.RestAPI.domain.message.enums.ProviderType;
+import java.util.UUID;
 public class ProviderMessage {
 
     private ProviderType providerType;
     private String recipient;
     private String content;
     private String subject;
-
+    private UUID id;
     public ProviderMessage() {
     }
 
@@ -14,12 +15,15 @@ public class ProviderMessage {
             ProviderType providerType,
             String recipient,
             String content,
-            String subject
+            String subject,
+            UUID id
     ) {
         this.providerType = providerType;
         this.recipient = recipient;
         this.content = content;
         this.subject = subject;
+        this.id = id;
+
     }
 
     public ProviderType getProviderType() {
@@ -52,5 +56,11 @@ public class ProviderMessage {
 
     public void setSubject(String subject) {
         this.subject = subject;
+    }
+    public UUID getId() {
+        return id;
+    }
+    public void setId(UUID id) {
+        this.id = id;
     }
 }

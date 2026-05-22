@@ -21,11 +21,12 @@ public class MessageProviderController {
     public String sendMessage(@RequestBody SendMessageRequest request) {
 
         ProviderMessage message = new ProviderMessage(
-                ProviderType.valueOf(request.getProvider().toUpperCase()),
-                request.getRecipient(),
-                request.getContent(),
-                request.getSubject()
-        );
+        ProviderType.valueOf(request.getProvider().toUpperCase()),
+        request.getRecipient(),
+        request.getContent(),
+        request.getSubject(),
+        null
+);
 
         messageProviderUseCase.queueMessage(message);
 

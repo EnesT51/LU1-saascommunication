@@ -12,6 +12,8 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import com.api.RestAPI.application.messageprovider.service.ProviderMessageStatusService;
+
 import java.util.Arrays;
 
 @Component
@@ -21,11 +23,16 @@ public class SwiftSendProvider implements MessageProvider {
 
     private final RestTemplate restTemplate;
     private final SwiftSendProperties properties;
-
-    public SwiftSendProvider(SwiftSendProperties properties) {
-        this.properties = properties;
-        this.restTemplate = new RestTemplate();
-    }
+    private final ProviderMessageStatusService statusService;
+    
+    public SwiftSendProvider(
+        SwiftSendProperties properties,
+        ProviderMessageStatusService statusService
+) {
+    this.properties = properties;
+    this.statusService = statusService;
+    this.restTemplate = new RestTemplate();
+}
 
     @Override
     public ProviderType supports() {
@@ -57,12 +64,16 @@ public class SwiftSendProvider implements MessageProvider {
             SwiftSendResponse body = response.getBody();
 
             if (body != null && body.isSuccess()) {
+                statusService.markAsSent(message.getId(), body.getMessageId());
                 logger.info("SwiftSend message sent successfully. MessageId={}", body.getMessageId());
             } else {
-                logger.warn("SwiftSend failed. Error={}", body != null ? body.getError() : "No response body");
+                String error = body != null ? body.getError() : "No response body";
+                statusService.markAsFailed(message.getId(), error);
+                logger.warn("SwiftSend failed. Error={}", error);
             }
 
         } catch (Exception ex) {
+            statusService.markAsFailed(message.getId(), ex.getMessage());
             logger.error("SwiftSend request failed: {}", ex.getMessage());
             throw ex;
         }
