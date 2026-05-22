@@ -11,6 +11,7 @@ import com.api.RestAPI.domain.appointment.Interface.IAppointmentRepository;
 import jakarta.transaction.Transactional;
 
 @Service
+@Transactional
 public class AppointmentCleanupService {
 
     private final IAppointmentRepository repository;
@@ -21,7 +22,6 @@ public class AppointmentCleanupService {
         this.repository = repository;
     }
 
-    @Transactional
     @Scheduled(cron = "0 0 2 * * *")
     public void cleanupOldAppointments() {
 
