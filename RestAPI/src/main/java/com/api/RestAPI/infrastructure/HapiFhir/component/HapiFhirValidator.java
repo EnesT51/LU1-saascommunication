@@ -40,12 +40,20 @@ public class HapiFhirValidator implements IHapiFhirValidator {
             Appointment resource = parser.parseResource(Appointment.class, fhirJson);
             ValidationResult result = fhirValidator.validateWithResult(resource);
             if (!result.isSuccessful()) {
-                result.getMessages()
-                .stream()
-                .map(SingleValidationMessage::getMessage)
-                .collect(Collectors.joining(", "));
-        }
-        }catch (Exception ex) {
+                String validationMessage = result.getMessages()
+                        .stream()
+                        .map(SingleValidationMessage::getMessage)
+                        .collect(Collectors.joining(", "));
+
+                if (validationMessage.isBlank()) {
+                    validationMessage = "FHIR validation failed";
+                }
+
+                throw new InvalidFhirJsonException("FHIR validation failed: " + validationMessage);
+            }
+        } catch (InvalidFhirJsonException ex) {
+            throw ex;
+        } catch (Exception ex) {
             throw new InvalidFhirJsonException("Error during FHIR validation: " + ex.getMessage());
         }
     }
