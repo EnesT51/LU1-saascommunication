@@ -28,7 +28,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     private String maskKey(String k) {
         if (k == null) return "null";
         int len = k.length();
-        if (len <= 8) return k;
+        if (len == 0) return "***(0)";
+        if (len <= 8) return "***(" + len + ")";
         return k.substring(0, 4) + "..." + k.substring(len - 4) + "(" + len + ")";
     }
 
