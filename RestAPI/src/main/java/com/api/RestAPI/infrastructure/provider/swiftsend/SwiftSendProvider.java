@@ -75,7 +75,6 @@ public class SwiftSendProvider implements MessageProvider {
         } catch (Exception ex) {
             statusService.markAsFailed(message.getId(), ex.getMessage());
             logger.error("SwiftSend request failed: {}", ex.getMessage());
-            throw ex;
         }
     }
 }

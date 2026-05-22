@@ -64,25 +64,16 @@ public class SecurePostProvider implements MessageProvider {
 
             if (body != null && body.isDelivered()) {
                 statusService.markAsSent(message.getId(), body.getTrackingId());
-
-                logger.info(
-                        "SecurePost message delivered. TrackingId={}",
-                        body.getTrackingId()
-                );
+                logger.info("SecurePost message delivered. TrackingId={}", body.getTrackingId());
             } else {
                 String error = body != null ? body.getErrorMessage() : "No response body";
-
                 statusService.markAsFailed(message.getId(), error);
-
                 logger.warn("SecurePost failed. Error={}", error);
             }
 
         } catch (Exception ex) {
             statusService.markAsFailed(message.getId(), ex.getMessage());
-
             logger.error("SecurePost message request failed: {}", ex.getMessage());
-
-            throw ex;
         }
     }
 

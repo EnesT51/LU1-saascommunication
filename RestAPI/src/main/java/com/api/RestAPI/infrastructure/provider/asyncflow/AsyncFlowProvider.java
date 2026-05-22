@@ -76,7 +76,6 @@ public class AsyncFlowProvider implements MessageProvider {
         } catch (Exception ex) {
             statusService.markAsFailed(message.getId(), ex.getMessage());
             logger.error("AsyncFlow request failed: {}", ex.getMessage());
-            throw ex;
         }
     }
 }

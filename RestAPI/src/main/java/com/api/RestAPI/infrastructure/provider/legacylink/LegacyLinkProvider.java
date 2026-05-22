@@ -85,7 +85,6 @@ public class LegacyLinkProvider implements MessageProvider {
         } catch (Exception ex) {
             statusService.markAsFailed(message.getId(), ex.getMessage());
             logger.error("LegacyLink request failed: {}", ex.getMessage());
-            throw ex;
         }
     }
 }
