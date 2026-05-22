@@ -20,4 +20,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleTransition(InvalidStatusTransitionException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(
+            "Invalid request data: " + ex.getMessage() +
+            ". Allowed provider values are SWIFTSEND, SECUREPOST, LEGACYLINK, ASYNCFLOW."
+        );
+    }
 }

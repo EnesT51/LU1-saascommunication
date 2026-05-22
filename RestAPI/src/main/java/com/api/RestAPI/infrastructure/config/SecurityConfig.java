@@ -30,10 +30,15 @@ public class SecurityConfig {
             ).authorizeHttpRequests(auth -> auth.requestMatchers(
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
-                    "/swagger-ui.html",
+                    "/swagger-ui.html"
+            ).permitAll()
+.requestMatchers("/api/message-provider/**").permitAll()
+.anyRequest().authenticated()
                     "/actuator/prometheus",
                     "/actuator/health"
-            ).permitAll().anyRequest().authenticated()
+            ).permitAll()
+.requestMatchers("/api/message-provider/**").permitAll()
+.anyRequest().authenticated()
         )
             .httpBasic(httpBasic -> httpBasic.disable())
             .formLogin(formLogin -> formLogin.disable())
@@ -45,4 +50,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-
