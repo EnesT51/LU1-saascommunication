@@ -1,5 +1,6 @@
 package com.api.RestAPI.infrastructure.appointment.persistence;
 
+import com.api.RestAPI.domain.appointment.Interface.AnonymizeAppointmentRepository;
 import com.api.RestAPI.domain.appointment.Interface.IAppointmentRepository;
 import com.api.RestAPI.infrastructure.appointment.persistence.entities.AppointmentEntity;
 
@@ -11,12 +12,14 @@ import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class AppointmentRepositoryImpl implements IAppointmentRepository {
+public class AppointmentRepositoryImpl implements IAppointmentRepository, AnonymizeAppointmentRepository {
 
     private final JpaAppointmentRepository jpaAppointmentRepository;
+    private final JpaAnonymizeAppointmentRepository jpaAnonymizeAppointmentRepository;
 
-    public AppointmentRepositoryImpl(JpaAppointmentRepository jpaAppointmentRepository) {
+    public AppointmentRepositoryImpl(JpaAppointmentRepository jpaAppointmentRepository, JpaAnonymizeAppointmentRepository jpaAnonymizeAppointmentRepository) {
         this.jpaAppointmentRepository = jpaAppointmentRepository;
+        this.jpaAnonymizeAppointmentRepository = jpaAnonymizeAppointmentRepository;
     }
 
     public List<AppointmentEntity> getAppointments() {
@@ -40,6 +43,10 @@ public class AppointmentRepositoryImpl implements IAppointmentRepository {
     @Override
     public long deleteByCreatedAtBefore(Instant cutoffDate) {
         return jpaAppointmentRepository.deleteByCreatedAtBefore(cutoffDate);
+    }
+    @Override
+    public int anonymizeAppointmentsOlderThan(Instant cutoffDate) {
+        return jpaAnonymizeAppointmentRepository.anonymizeAppointmentsOlderThan(cutoffDate);
     }
 }
 

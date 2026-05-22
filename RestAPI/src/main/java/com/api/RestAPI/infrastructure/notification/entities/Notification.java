@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -44,6 +45,9 @@ public class Notification {
     @Column(length = 1000)
     private String failureReason;
 
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
     public Notification() {
     }
 
@@ -57,6 +61,7 @@ public class Notification {
             int retryCount,
             String provider,
             String failureReason
+            
     ) {
         this.id = id;
         this.appointmentId = appointmentId;
@@ -67,6 +72,11 @@ public class Notification {
         this.retryCount = retryCount;
         this.provider = provider;
         this.failureReason = failureReason;
+        
+    }
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = Instant.now();
     }
 
     public UUID getId() {
