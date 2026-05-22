@@ -2,9 +2,6 @@ package com.api.RestAPI.presentation.appointment.controller;
 
 import com.api.RestAPI.application.appointment.dto.AppointmentResponseDto;
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentEventProcessor;
-// import com.api.RestAPI.application.messaging.AppointmentEventStore;
-import com.api.RestAPI.application.appointment.interfaces.IAppointmentMapper;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

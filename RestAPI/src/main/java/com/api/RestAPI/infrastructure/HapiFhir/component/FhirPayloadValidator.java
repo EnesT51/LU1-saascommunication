@@ -1,4 +1,4 @@
-package com.api.RestAPI.infrastructure.HapiFhir.services;
+package com.api.RestAPI.infrastructure.HapiFhir.component;
 
 import org.springframework.stereotype.Component;
 

@@ -6,10 +6,11 @@ import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.StringType;
 import org.springframework.stereotype.Component;
+import org.hl7.fhir.r4.model.Appointment.AppointmentParticipantComponent;
+import org.hl7.fhir.r4.model.Appointment.AppointmentStatus;
 
 import com.api.RestAPI.application.appointment.dto.AppointmentResponseDto;
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentMapper;
-import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
 import com.api.RestAPI.infrastructure.appointment.persistence.entities.AppointmentEntity;
 
 
@@ -27,6 +28,7 @@ public class AppointmentMapper implements IAppointmentMapper {
         appointmentEntity.setEnd(appointment.getEnd().toInstant());
         appointmentEntity.setDescription(appointment.getDescription());
         appointmentEntity.setComment(appointment.getComment());
+        appointmentEntity.prePersist();
 
         if (appointment.hasStatus()) { appointmentEntity.setStatus(mapStatus(appointment.getStatus())); }
 
@@ -43,7 +45,7 @@ public class AppointmentMapper implements IAppointmentMapper {
         return dto;
     }
 
-    private AppointmentStatus mapStatus(Appointment.AppointmentStatus status) {
+    private AppointmentStatus mapStatus(AppointmentStatus status) {
 
         switch (status) {
             case BOOKED: return AppointmentStatus.BOOKED;
@@ -53,7 +55,7 @@ public class AppointmentMapper implements IAppointmentMapper {
     }
     private void extractParticipants(AppointmentEntity appointmentEntity, Appointment appointment) {
 
-        for (Appointment.AppointmentParticipantComponent participant : appointment.getParticipant()) {
+        for (AppointmentParticipantComponent participant : appointment.getParticipant()) {
 
             if (!participant.hasActor()) {
                 continue;

@@ -2,7 +2,6 @@ package com.api.RestAPI.application.appointment.dto;
 
 import java.time.Instant;
 
-import com.api.RestAPI.domain.appointment.enums.AppointmentStatus;
 import com.api.RestAPI.infrastructure.appointment.persistence.entities.AppointmentEntity;
 
 public class AppointmentResponseDto {
@@ -20,13 +19,7 @@ public class AppointmentResponseDto {
     private boolean newlyCreated;
     private Instant start;
     private Instant end;
-    private boolean isNewlyCreated;
-    private AppointmentStatus appointmentStatus;
 
-
-    public AppointmentStatus getAppointmentStatus() {
-        return appointmentStatus;
-    }
     public boolean getNewlyCreated() {
         return newlyCreated;
     }
@@ -91,9 +84,6 @@ public class AppointmentResponseDto {
     public void setPatientId(String patientId) {
         this.patientId = patientId;
     }
-    public void setAppointmentStatus(AppointmentStatus appointmentStatus) {
-        this.appointmentStatus = appointmentStatus;
-    }
     public void setPatientName(String patientName) {
         this.patientName = patientName;
     }
@@ -116,7 +106,7 @@ public class AppointmentResponseDto {
         this.status = status;
     }
     public void toDto(AppointmentEntity dto) {
-        this.appointmentId = dto.getAppointmentId();
+        this.appointmentId = dto.getAppointmentId().toString();
         this.patientId = dto.getPatientId();
         this.patientName = dto.getPatientName();
         this.practitionerId = dto.getPractitionerId();
@@ -130,5 +120,4 @@ public class AppointmentResponseDto {
         this.start = dto.getStart();
         this.end = dto.getEnd();
     }
-
 }
