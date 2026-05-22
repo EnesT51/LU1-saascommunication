@@ -99,6 +99,7 @@ services:
       - db
       - messagequeue
       - rabbitmq
+      - fakecomworld
     environment:
       API_KEY: ${API_KEY}
 
@@ -107,6 +108,9 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      SWIFTSEND_URL: ${SWIFTSEND_URL}
+      SWIFTSEND_API_KEY: ${SWIFTSEND_API_KEY}
+      STUDENT_GROUP: ${STUDENT_GROUP}
 
       ACTIVEMQ_BROKER_URL: ${ACTIVEMQ_BROKER_URL}
       ACTIVEMQ_QUEUE_NAME: ${ACTIVEMQ_QUEUE_NAME}
