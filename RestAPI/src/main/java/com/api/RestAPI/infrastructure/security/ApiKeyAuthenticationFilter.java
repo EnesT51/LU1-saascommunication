@@ -27,9 +27,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
     private String maskKey(String k) {
         if (k == null) return "null";
-        int len = k.length();
-        if (len <= 8) return k;
-        return k.substring(0, 4) + "..." + k.substring(len - 4) + "(" + len + ")";
+        return "[REDACTED](" + k.length() + ")";
     }
 
     public ApiKeyAuthenticationFilter(IApiKeyValidationService validationService) {
