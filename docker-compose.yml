@@ -98,6 +98,7 @@ services:
     depends_on:
       - db
       - messagequeue
+      - lgtm
       - rabbitmq
       - fakecomworld
     environment:
@@ -127,6 +128,12 @@ services:
       ACTIVEMQ_QUEUE_NAME: ${ACTIVEMQ_QUEUE_NAME}
       ACTIVEMQ_USERNAME: ${ACTIVEMQ_USERNAME}
       ACTIVEMQ_PASSWORD: ${ACTIVEMQ_PASSWORD}
+      OTEL_SERVICE_NAME: restapi
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
 
       RABBITMQ_HOST: ${RABBITMQ_HOST}
       RABBITMQ_PORT: ${RABBITMQ_PORT}
@@ -146,9 +153,33 @@ services:
     image: ghcr.io/avansict/in2.4-fakecomworld:main
     container_name: fakecomworld
     restart: unless-stopped
-
     ports:
       - "1337:8080"
+
+  # All-in-one observability stack: Loki + Grafana + Tempo + Mimir + OTEL Collector
+  lgtm:
+    image: grafana/otel-lgtm:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"   # Grafana
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    volumes:
+      - ./monitoring/otelcol-config.yaml:/otel-lgtm/otelcol-config.yaml:ro
+      - ./monitoring/grafana/dashboards/saascommunication.json:/otel-lgtm/saascommunication-dashboard.json:ro
+      - ./monitoring/grafana-saascommunication-provider.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/saascommunication.yaml:ro
+    depends_on:
+      - json-exporter
+
+  # Converts ActiveMQ Jolokia JSON into Prometheus metrics (queue depth, enqueued, dequeued)
+  json-exporter:
+    image: prometheuscommunity/json-exporter:v0.6.0
+    restart: unless-stopped
+    command: ["--config.file=/etc/json-exporter/config.yml"]
+    volumes:
+      - ./monitoring/json-exporter-config.yml:/etc/json-exporter/config.yml:ro
+    ports:
+      - "7979:7979"
 volumes:
   openmrs-data:
   db-data:

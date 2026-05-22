@@ -71,6 +71,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         return path.startsWith("/swagger-ui")
             || path.startsWith("/v3/api-docs")
-            || path.equals("/swagger-ui.html");
+            || path.equals("/swagger-ui.html")
+            || path.equals("/actuator/prometheus")
+            || path.equals("/actuator/health");
     }
 }

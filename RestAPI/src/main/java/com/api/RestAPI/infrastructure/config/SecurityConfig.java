@@ -34,6 +34,11 @@ public class SecurityConfig {
             ).permitAll()
 .requestMatchers("/api/message-provider/**").permitAll()
 .anyRequest().authenticated()
+                    "/actuator/prometheus",
+                    "/actuator/health"
+            ).permitAll()
+.requestMatchers("/api/message-provider/**").permitAll()
+.anyRequest().authenticated()
         )
             .httpBasic(httpBasic -> httpBasic.disable())
             .formLogin(formLogin -> formLogin.disable())
@@ -45,4 +50,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-
