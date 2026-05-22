@@ -27,19 +27,17 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             
-            ).authorizeHttpRequests(auth -> auth.requestMatchers(
+            ).authorizeHttpRequests(auth -> auth
+                .requestMatchers(
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
-                    "/swagger-ui.html"
-            ).permitAll()
-.requestMatchers("/api/message-provider/**").permitAll()
-.anyRequest().authenticated()
+                    "/swagger-ui.html",
                     "/actuator/prometheus",
-                    "/actuator/health"
-            ).permitAll()
-.requestMatchers("/api/message-provider/**").permitAll()
-.anyRequest().authenticated()
-        )
+                    "/actuator/health",
+                    "/api/message-provider/**"
+                ).permitAll()
+                .anyRequest().authenticated()
+            )
             .httpBasic(httpBasic -> httpBasic.disable())
             .formLogin(formLogin -> formLogin.disable())
 
