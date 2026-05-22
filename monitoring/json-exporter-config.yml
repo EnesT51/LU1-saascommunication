@@ -1,0 +1,14 @@
+modules:
+  activemq:
+    headers:
+      Origin: http://json-exporter
+    metrics:
+      - name: activemq
+        type: object
+        help: "ActiveMQ broker statistics"
+        path: '{.value}'
+        values:
+          total_messages: '{.TotalMessageCount}'
+          total_enqueued: '{.TotalEnqueueCount}'
+          total_dequeued: '{.TotalDequeueCount}'
+          total_consumers: '{.TotalConsumerCount}'
