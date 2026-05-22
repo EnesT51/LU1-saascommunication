@@ -33,7 +33,7 @@ public class NotificationRepositoryImpl implements INotificationRepository {
         return jpaNotificationRepository.findByStatusAndScheduledAtBefore(status, now);
     }
     @Override
-    public Long deleteByCreatedAtBefore(Instant cutoffDate) {
+    public long deleteByCreatedAtBefore(Instant cutoffDate) {
         return jpaNotificationRepository.deleteByCreatedAtBefore(cutoffDate);
     }
 
