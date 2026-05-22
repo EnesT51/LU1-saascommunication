@@ -98,6 +98,4 @@ public class AppointmentService implements IAppointmentEventProcessor {
             stateHandler.validateTransition(currentStatus, newStatus);
         }
     }
-
-
 }

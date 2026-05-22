@@ -1,5 +1,6 @@
 package com.api.RestAPI.domain.appointment.Interface;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,4 +15,5 @@ public interface IAppointmentRepository
     Optional<AppointmentEntity> findByAppointmentId(String appointmentId);
     AppointmentEntity save(AppointmentEntity appointment);
     List<AppointmentEntity> getAppointments();
+    long deleteByCreatedAtBefore(Instant cutoffDate);
 }

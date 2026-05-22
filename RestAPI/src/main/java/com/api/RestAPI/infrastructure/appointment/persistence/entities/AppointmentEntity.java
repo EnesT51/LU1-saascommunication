@@ -11,6 +11,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 
@@ -43,9 +44,16 @@ public class AppointmentEntity {
     private String locationId;
     private String location;
 
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
     @Enumerated(EnumType.STRING)
     private AppointmentStatus status;
 
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = Instant.now();
+    }
     public UUID getId() {
         return id;
     }

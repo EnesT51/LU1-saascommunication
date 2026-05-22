@@ -3,6 +3,7 @@ package com.api.RestAPI.infrastructure.appointment.persistence;
 import com.api.RestAPI.domain.appointment.Interface.IAppointmentRepository;
 import com.api.RestAPI.infrastructure.appointment.persistence.entities.AppointmentEntity;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,6 +35,11 @@ public class AppointmentRepositoryImpl implements IAppointmentRepository {
     @Override
     public AppointmentEntity save(AppointmentEntity appointment) {
         return jpaAppointmentRepository.save(appointment);
+    }
+
+    @Override
+    public long deleteByCreatedAtBefore(Instant cutoffDate) {
+        return jpaAppointmentRepository.deleteByCreatedAtBefore(cutoffDate);
     }
 }
 

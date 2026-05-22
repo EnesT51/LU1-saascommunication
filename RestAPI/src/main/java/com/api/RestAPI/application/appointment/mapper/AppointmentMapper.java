@@ -28,6 +28,7 @@ public class AppointmentMapper implements IAppointmentMapper {
         appointmentEntity.setEnd(appointment.getEnd().toInstant());
         appointmentEntity.setDescription(appointment.getDescription());
         appointmentEntity.setComment(appointment.getComment());
+        appointmentEntity.prePersist();
 
         if (appointment.hasStatus()) { appointmentEntity.setStatus(mapStatus(appointment.getStatus())); }
 
