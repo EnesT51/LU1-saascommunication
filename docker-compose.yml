@@ -1,7 +1,7 @@
 services:
   gateway:
     image: openmrs/openmrs-reference-application-3-gateway:${TAG:-qa}
-    restart: "unless-stopped"
+    restart: unless-stopped
     depends_on:
       - frontend
       - backend
@@ -10,21 +10,18 @@ services:
 
   frontend:
     image: openmrs/openmrs-reference-application-3-frontend:${TAG:-qa}
-    restart: "unless-stopped"
+    restart: unless-stopped
     environment:
       - SPA_PATH=/openmrs/spa
       - API_URL=/openmrs
       - SPA_CONFIG_URLS=/openmrs/spa/config-core_demo.json
       - SPA_DEFAULT_LOCALE=
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/"]
-      timeout: 5s
     depends_on:
       - backend
 
   backend:
     image: openmrs/openmrs-reference-application-3-backend:${TAG:-qa}
-    restart: "unless-stopped"
+    restart: unless-stopped
     depends_on:
       - db
       - messagequeue
@@ -35,8 +32,8 @@ services:
       OMRS_CONFIG_CREATE_TABLES: "true"
       OMRS_CONFIG_CONNECTION_SERVER: db
       OMRS_CONFIG_CONNECTION_DATABASE: openmrs
-      OMRS_CONFIG_CONNECTION_USERNAME: ${OMRS_DB_USER:-openmrs}
-      OMRS_CONFIG_CONNECTION_PASSWORD: ${OMRS_DB_PASSWORD:-openmrs}
+      OMRS_CONFIG_CONNECTION_USERNAME: ${OMRS_DB_USER}
+      OMRS_CONFIG_CONNECTION_PASSWORD: ${OMRS_DB_PASSWORD}
       ACTIVEMQ_BROKER_URL: ${ACTIVEMQ_BROKER_URL}
       ACTIVEMQ_QUEUE_NAME: ${ACTIVEMQ_QUEUE_NAME}
       ACTIVEMQ_WEB_API_URL: ${ACTIVEMQ_WEB_API_URL}
@@ -45,9 +42,6 @@ services:
       JAVA_TOOL_OPTIONS: >-
         -Djavax.net.ssl.trustStore=/opt/certs/client.ts
         -Djavax.net.ssl.trustStorePassword=${TRUSTSTORE_PASSWORD}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs"]
-      timeout: 5s
     volumes:
       - openmrs-data:/openmrs/data
       - ./saascommunication/omod/target/saascommunication-1.0.0-SNAPSHOT.omod:/openmrs/data/modules/saascommunication.omod
@@ -55,20 +49,15 @@ services:
 
   db:
     image: mariadb:10.11.7
-    restart: "unless-stopped"
+    restart: unless-stopped
     ports:
-    - "3307:3306"
+      - "3307:3306"
     command: "mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci"
-    healthcheck:
-      test: 'mysql --user=${OMRS_DB_USER:-openmrs} --password=${OMRS_DB_PASSWORD:-openmrs} --execute "SHOW DATABASES;"'
-      interval: 3s
-      timeout: 1s
-      retries: 5
     environment:
       MYSQL_DATABASE: openmrs
-      MYSQL_USER: ${OMRS_DB_USER:-openmrs}
-      MYSQL_PASSWORD: ${OMRS_DB_PASSWORD:-openmrs}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-openmrs}
+      MYSQL_USER: ${OMRS_DB_USER}
+      MYSQL_PASSWORD: ${OMRS_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - db-data:/var/lib/mysql
 
@@ -81,33 +70,78 @@ services:
       - ACTIVEMQ_WEB_USER=${ACTIVEMQ_USERNAME}
       - ACTIVEMQ_WEB_PASSWORD=${ACTIVEMQ_PASSWORD}
     ports:
-      - "8161:8161"     # Web console (beschermd met wachtwoord)
+      - "8161:8161"
       - "61616:61616"
-      - "61617:61617"   # SSL/TLS 1.3
+      - "61617:61617"
     volumes:
       - ./activemq/conf/activemq.xml:/opt/apache-activemq/conf/activemq.xml:ro
       - ./activemq/certs:/opt/apache-activemq/certs:ro
 
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
   restapi:
     build:
       context: ./RestAPI
-    restart: "unless-stopped"
+    restart: unless-stopped
     depends_on:
       - db
       - messagequeue
+      - lgtm
+      - rabbitmq
+      - fakecomworld
     environment:
       USER_PASSWORD: ${USER_PASSWORD}
       API_KEY: ${API_KEY}
+
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+
+      SWIFTSEND_URL: ${SWIFTSEND_URL}
+      SWIFTSEND_API_KEY: ${SWIFTSEND_API_KEY}
+      STUDENT_GROUP: ${STUDENT_GROUP}
+      LEGACYLINK_URL: ${LEGACYLINK_URL}
+      LEGACYLINK_AUTHORIZATION: ${LEGACYLINK_AUTHORIZATION}
+      LEGACYLINK_SENDER: ${LEGACYLINK_SENDER}
+      ASYNCFLOW_URL: ${ASYNCFLOW_URL}
+      ASYNCFLOW_API_KEY: ${ASYNCFLOW_API_KEY}
+      ASYNCFLOW_PRIORITY: ${ASYNCFLOW_PRIORITY}
+      SECUREPOST_AUTH_URL: ${SECUREPOST_AUTH_URL}
+      SECUREPOST_MESSAGE_URL: ${SECUREPOST_MESSAGE_URL}
+      SECUREPOST_CLIENT_ID: ${SECUREPOST_CLIENT_ID}
+      SECUREPOST_CLIENT_SECRET: ${SECUREPOST_CLIENT_SECRET}
+
       ACTIVEMQ_BROKER_URL: ${ACTIVEMQ_BROKER_URL}
       ACTIVEMQ_QUEUE_NAME: ${ACTIVEMQ_QUEUE_NAME}
       ACTIVEMQ_USERNAME: ${ACTIVEMQ_USERNAME}
       ACTIVEMQ_PASSWORD: ${ACTIVEMQ_PASSWORD}
-      JAVA_TOOL_OPTIONS: >
+      OTEL_SERVICE_NAME: restapi
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+
+      JAVA_TOOL_OPTIONS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
         -Djavax.net.ssl.trustStore=/opt/certs/client.ts
         -Djavax.net.ssl.trustStorePassword=${TRUSTSTORE_PASSWORD}
@@ -116,7 +150,38 @@ services:
       - "5006:5005"
     volumes:
       - ./activemq/certs:/opt/certs:ro
+  fakecomworld:
+    image: ghcr.io/avansict/in2.4-fakecomworld:main
+    container_name: fakecomworld
+    restart: unless-stopped
+    ports:
+      - "1337:8080"
 
+  # All-in-one observability stack: Loki + Grafana + Tempo + Mimir + OTEL Collector
+  lgtm:
+    image: grafana/otel-lgtm:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"   # Grafana
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    volumes:
+      - ./monitoring/otelcol-config.yaml:/otel-lgtm/otelcol-config.yaml:ro
+      - ./monitoring/grafana/dashboards/saascommunication.json:/otel-lgtm/saascommunication-dashboard.json:ro
+      - ./monitoring/grafana-saascommunication-provider.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/saascommunication.yaml:ro
+    depends_on:
+      - json-exporter
+
+  # Converts ActiveMQ Jolokia JSON into Prometheus metrics (queue depth, enqueued, dequeued)
+  json-exporter:
+    image: prometheuscommunity/json-exporter:v0.6.0
+    restart: unless-stopped
+    command: ["--config.file=/etc/json-exporter/config.yml"]
+    volumes:
+      - ./monitoring/json-exporter-config.yml:/etc/json-exporter/config.yml:ro
+    ports:
+      - "7979:7979"
 volumes:
-  openmrs-data: ~
-  db-data: ~
+  openmrs-data:
+  db-data:
+  rabbitmq-data:
