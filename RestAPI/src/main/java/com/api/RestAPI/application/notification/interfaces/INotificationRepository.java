@@ -10,5 +10,5 @@ public interface INotificationRepository {
     void save(Notification notification);
     void saveAll(List<Notification> notifications);
     List<Notification> findPendingNotifications(NotificationStatus status, Instant now);
-    Long deleteByCreatedAtBefore(Instant cutoffDate);
+    long deleteByCreatedAtBefore(Instant cutoffDate);
 }
