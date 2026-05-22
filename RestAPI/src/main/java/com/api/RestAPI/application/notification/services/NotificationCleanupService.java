@@ -24,7 +24,7 @@ public class NotificationCleanupService {
     public void cleanupOldNotifications() {
 
         Instant cutoffDate = Instant.now().minus(1, ChronoUnit.YEARS);
-        Long deletedCount = notificationRepository.deleteByCreatedAtBefore(cutoffDate);
+        long deletedCount = notificationRepository.deleteByCreatedAtBefore(cutoffDate);
         
         System.out.println("Deleted " + deletedCount + " old notifications.");
     }
