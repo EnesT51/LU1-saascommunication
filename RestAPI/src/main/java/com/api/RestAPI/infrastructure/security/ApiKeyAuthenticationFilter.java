@@ -27,7 +27,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
     private String maskKey(String k) {
         if (k == null) return "null";
-        return "[REDACTED](" + k.length() + ")";
+        return "[REDACTED]";
     }
 
     public ApiKeyAuthenticationFilter(IApiKeyValidationService validationService) {
