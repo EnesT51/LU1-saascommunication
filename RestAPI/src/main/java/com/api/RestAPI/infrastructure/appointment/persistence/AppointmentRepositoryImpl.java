@@ -45,8 +45,8 @@ public class AppointmentRepositoryImpl implements IAppointmentRepository, Anonym
         return jpaAppointmentRepository.deleteByCreatedAtBefore(cutoffDate);
     }
     @Override
-    public int anonymizeAppointmentsOlderThan(Instant cutoffDate) {
-        return jpaAnonymizeAppointmentRepository.anonymizeAppointmentsOlderThan(cutoffDate);
+    public int anonymizeAppointmentsEndedBefore(Instant cutoffDate) {
+        return jpaAnonymizeAppointmentRepository.anonymizeAppointmentsEndedBefore(cutoffDate);
     }
 }
 

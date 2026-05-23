@@ -22,6 +22,6 @@ public interface JpaAnonymizeAppointmentRepository  extends JpaRepository<Appoin
             a.patientName = null,
             a.patientPhoneNumber = null,
             a.comment = null,
-            a.location = null WHERE a.createdAt < :cutoffDate""")
-    int anonymizeAppointmentsOlderThan(@Param("cutoffDate")Instant cutoffDate);
+            a.location = null WHERE a.end < :cutoffDate""")
+    int anonymizeAppointmentsEndedBefore(@Param("cutoffDate")Instant cutoffDate);
 }
