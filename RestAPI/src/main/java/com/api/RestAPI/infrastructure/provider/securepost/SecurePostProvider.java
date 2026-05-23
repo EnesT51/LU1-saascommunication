@@ -3,6 +3,7 @@ package com.api.RestAPI.infrastructure.provider.securepost;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageProvider;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
+import com.api.RestAPI.domain.message.model.ProviderSendResult;
 import com.api.RestAPI.infrastructure.provider.securepost.dto.*;
 
 import org.slf4j.Logger;
@@ -30,24 +31,24 @@ public class SecurePostProvider implements MessageProvider {
     }
 
     @Override
-    public void send(ProviderMessage message) {
-        String accessToken = authenticate();
-
-        SecurePostMessageRequest request = new SecurePostMessageRequest(
-                "EMAIL",
-                message.getRecipient(),
-                message.getContent(),
-                message.getSubject() != null ? message.getSubject() : "Afspraak notificatie"
-        );
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(accessToken);
-        headers.set("X-STUDENT-GROUP", properties.getStudentGroup());
-
-        HttpEntity<SecurePostMessageRequest> entity = new HttpEntity<>(request, headers);
-
+    public ProviderSendResult send(ProviderMessage message) {
         try {
+            String accessToken = authenticate();
+
+            SecurePostMessageRequest request = new SecurePostMessageRequest(
+                    "EMAIL",
+                    message.getRecipient(),
+                    message.getContent(),
+                    message.getSubject() != null ? message.getSubject() : "Afspraak notificatie"
+            );
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(accessToken);
+            headers.set("X-STUDENT-GROUP", properties.getStudentGroup());
+
+            HttpEntity<SecurePostMessageRequest> entity = new HttpEntity<>(request, headers);
+
             ResponseEntity<SecurePostMessageResponse> response = restTemplate.postForEntity(
                     properties.getMessageUrl(),
                     entity,
@@ -58,13 +59,30 @@ public class SecurePostProvider implements MessageProvider {
 
             if (body != null && body.isDelivered()) {
                 logger.info("SecurePost message delivered. TrackingId={}", body.getTrackingId());
-            } else {
-                logger.warn("SecurePost failed. Error={}", body != null ? body.getErrorMessage() : "No response body");
+                return ProviderSendResult.success(body.getTrackingId());
             }
 
+            String error = body != null ? body.getErrorMessage() : "No response body";
+            logger.warn("SecurePost failed. Error={}", error);
+            return ProviderSendResult.failed(error);
+
         } catch (Exception ex) {
-            logger.error("SecurePost message request failed: {}", ex.getMessage());
-            throw ex;
+            String errorMessage = ex.getMessage();
+
+            logger.error("SecurePost message request failed: {}", errorMessage);
+
+            if (
+                    errorMessage != null &&
+                    (
+                            errorMessage.contains("401") ||
+                            errorMessage.contains("403") ||
+                            errorMessage.contains("400")
+                    )
+            ) {
+                return ProviderSendResult.failed(errorMessage);
+            }
+
+            return ProviderSendResult.retryableFailure(errorMessage);
         }
     }
 
