@@ -30,24 +30,30 @@ import org.apache.activemq.ActiveMQConnectionFactory;
  */
 public class ActiveMqPublisher implements AppointmentPublisher {
 	
-	private static final String BROKER_URL = getRequiredEnv("ACTIVEMQ_BROKER_URL");
-	
-	private static final String QUEUE_NAME = getRequiredEnv("ACTIVEMQ_QUEUE_NAME");
-	
-	private static final String WEB_API_URL = getRequiredEnv("ACTIVEMQ_WEB_API_URL");
-	
-	private static final String WEB_API_USERNAME = getRequiredEnv("ACTIVEMQ_USERNAME");
-	
-	private static final String WEB_API_PASSWORD = getRequiredEnv("ACTIVEMQ_PASSWORD");
-	
 	private static final int MAX_JMS_RETRIES = 3;
 	
 	private static final long BASE_DELAY_MS = 1000;
 	
 	private final MessageTracker tracker;
 	
+	private final String brokerUrl;
+	
+	private final String queueName;
+	
+	private final String webApiUrl;
+	
+	private final String webApiUsername;
+	
+	private final String webApiPassword;
+	
 	public ActiveMqPublisher(MessageTracker tracker) {
 		this.tracker = tracker;
+		// Lazy laden bij aanmaken — duidelijke fout als env var ontbreekt
+		this.brokerUrl = getRequiredEnv("ACTIVEMQ_BROKER_URL");
+		this.queueName = getRequiredEnv("ACTIVEMQ_QUEUE_NAME");
+		this.webApiUrl = getRequiredEnv("ACTIVEMQ_WEB_API_URL");
+		this.webApiUsername = getRequiredEnv("ACTIVEMQ_USERNAME");
+		this.webApiPassword = getRequiredEnv("ACTIVEMQ_PASSWORD");
 	}
 	
 	@Override
@@ -80,7 +86,7 @@ public class ActiveMqPublisher implements AppointmentPublisher {
 	}
 	
 	private void publishViaJms(String payload) throws Exception {
-		ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(BROKER_URL);
+		ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(brokerUrl);
 		Thread currentThread = Thread.currentThread();
 		ClassLoader originalContextClassLoader = currentThread.getContextClassLoader();
 		
@@ -96,7 +102,7 @@ public class ActiveMqPublisher implements AppointmentPublisher {
 			
 			session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 			
-			Destination destination = session.createQueue(QUEUE_NAME);
+			Destination destination = session.createQueue(queueName);
 			producer = session.createProducer(destination);
 			
 			TextMessage message = session.createTextMessage(payload);
@@ -121,7 +127,7 @@ public class ActiveMqPublisher implements AppointmentPublisher {
 		HttpURLConnection connection = null;
 		
 		try {
-			URL url = new URL(WEB_API_URL);
+			URL url = new URL(webApiUrl);
 			connection = (HttpURLConnection) url.openConnection();
 			connection.setRequestMethod("POST");
 			connection.setDoOutput(true);
@@ -172,7 +178,7 @@ public class ActiveMqPublisher implements AppointmentPublisher {
 	}
 	
 	private String getBasicAuthToken() {
-		String credentials = WEB_API_USERNAME + ":" + WEB_API_PASSWORD;
+		String credentials = webApiUsername + ":" + webApiPassword;
 		return Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
 	}
 	

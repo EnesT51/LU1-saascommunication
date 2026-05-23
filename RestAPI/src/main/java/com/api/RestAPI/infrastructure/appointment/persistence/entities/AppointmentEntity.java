@@ -44,6 +44,8 @@ public class AppointmentEntity {
     private String locationId;
     private String location;
 
+    private String organizationId;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -168,6 +170,15 @@ public class AppointmentEntity {
     public void setPatientPhoneNumber(String patientPhoneNumber) {
         this.patientPhoneNumber = patientPhoneNumber;
     }
+
+    public String getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(String organizationId) {
+        this.organizationId = organizationId;
+    }
+
     public void updateFrom(AppointmentEntity updated) {
 
         this.status = updated.status;
@@ -180,5 +191,6 @@ public class AppointmentEntity {
         this.practitionerId = updated.practitionerId;
         this.practitionerName = updated.practitionerName;
         this.appointmentId = updated.appointmentId;
+        this.organizationId = updated.organizationId;
     }
 }

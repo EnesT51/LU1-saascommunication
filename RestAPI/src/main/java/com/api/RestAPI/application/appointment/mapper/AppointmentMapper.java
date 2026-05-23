@@ -110,16 +110,29 @@ public class AppointmentMapper implements IAppointmentMapper {
                     break;
             }
         }
-        extractPhoneNumber(appointmentEntity, appointment);
+        extractExtensions(appointmentEntity, appointment);
     }
-    private void extractPhoneNumber(AppointmentEntity appointmentEntity, Appointment appointment) {
+
+    private void extractExtensions(AppointmentEntity appointmentEntity, Appointment appointment) {
 
         for (Extension extension : appointment.getExtension()) {
 
-            if ("http://saascommunication.openmrs.org/fhir/StructureDefinition/patientPhone".equals(extension.getUrl())
+            String url = extension.getUrl();
+
+            if (url == null) {
+                continue;
+            }
+
+            if ("http://saascommunication.openmrs.org/fhir/StructureDefinition/patientPhone".equals(url)
                     && extension.getValue() instanceof StringType stringType) {
 
                 appointmentEntity.setPatientPhoneNumber(stringType.getValue());
+            }
+
+            if ("http://saascommunication.openmrs.org/fhir/StructureDefinition/organizationId".equals(url)
+                    && extension.getValue() instanceof StringType stringType) {
+
+                appointmentEntity.setOrganizationId(stringType.getValue());
             }
         }
     }
