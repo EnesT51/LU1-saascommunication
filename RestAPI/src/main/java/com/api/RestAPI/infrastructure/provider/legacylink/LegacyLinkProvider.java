@@ -3,6 +3,7 @@ package com.api.RestAPI.infrastructure.provider.legacylink;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageProvider;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
+import com.api.RestAPI.domain.message.model.ProviderSendResult;
 import com.api.RestAPI.infrastructure.provider.legacylink.dto.LegacyLinkResponse;
 
 import org.slf4j.Logger;
@@ -11,8 +12,6 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import com.api.RestAPI.application.messageprovider.service.ProviderMessageStatusService;
-
 @Component
 public class LegacyLinkProvider implements MessageProvider {
 
@@ -20,14 +19,9 @@ public class LegacyLinkProvider implements MessageProvider {
 
     private final RestTemplate restTemplate;
     private final LegacyLinkProperties properties;
-    private final ProviderMessageStatusService statusService;
 
-    public LegacyLinkProvider(
-        LegacyLinkProperties properties,
-        ProviderMessageStatusService statusService
-    ) {
+    public LegacyLinkProvider(LegacyLinkProperties properties) {
         this.properties = properties;
-        this.statusService = statusService;
         this.restTemplate = new RestTemplate();
     }
 
@@ -37,14 +31,14 @@ public class LegacyLinkProvider implements MessageProvider {
     }
 
     @Override
-    public void send(ProviderMessage message) {
+    public ProviderSendResult send(ProviderMessage message) {
         String xmlBody = String.format(
                 "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
-                "<SendSmsRequest xmlns=\"http://legacylink.fakecomworld.com/v1\">" +
-                "<PhoneNumber>%s</PhoneNumber>" +
-                "<MessageText>%s</MessageText>" +
-                "<SenderIdentification>%s</SenderIdentification>" +
-                "</SendSmsRequest>",
+                        "<SendSmsRequest xmlns=\"http://legacylink.fakecomworld.com/v1\">" +
+                        "<PhoneNumber>%s</PhoneNumber>" +
+                        "<MessageText>%s</MessageText>" +
+                        "<SenderIdentification>%s</SenderIdentification>" +
+                        "</SendSmsRequest>",
                 message.getRecipient(),
                 message.getContent(),
                 properties.getSender()
@@ -68,23 +62,17 @@ public class LegacyLinkProvider implements MessageProvider {
             LegacyLinkResponse body = response.getBody();
 
             if (body != null && body.getStatusCode() == 200) {
-                statusService.markAsSent(message.getId(), body.getMessageReference());
-
-                logger.info(
-                        "LegacyLink SMS sent successfully. MessageReference={}",
-                        body.getMessageReference()
-                );
-            } else {
-                String error = body != null ? body.getStatusMessage() : "No response body";
-
-                statusService.markAsFailed(message.getId(), error);
-
-                logger.warn("LegacyLink failed. StatusMessage={}", error);
+                logger.info("LegacyLink SMS sent successfully. MessageReference={}", body.getMessageReference());
+                return ProviderSendResult.success(body.getMessageReference());
             }
 
+            String error = body != null ? body.getStatusMessage() : "No response body";
+            logger.warn("LegacyLink failed. StatusMessage={}", error);
+            return ProviderSendResult.failed(error);
+
         } catch (Exception ex) {
-            statusService.markAsFailed(message.getId(), ex.getMessage());
             logger.error("LegacyLink request failed: {}", ex.getMessage());
+            return ProviderSendResult.failed(ex.getMessage());
         }
     }
 }
