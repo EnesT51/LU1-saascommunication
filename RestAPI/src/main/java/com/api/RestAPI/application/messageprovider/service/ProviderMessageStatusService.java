@@ -16,25 +16,40 @@ public class ProviderMessageStatusService {
     }
 
     public void markAsSent(UUID messageId, String trackingId) {
-        ProviderMessageEntity entity = repository.findById(messageId)
-            .orElseThrow(() -> new IllegalArgumentException(new StringBuilder("Message not found: ").append(messageId).toString()));
-
+        java.util.Optional<ProviderMessageEntity> opt = repository.findById(messageId);
+        if (!opt.isPresent()) {
+            throw new IllegalArgumentException(new StringBuilder("Message not found: ").append(messageId).toString());
+        }
+        ProviderMessageEntity entity = opt.get();
         entity.markAsSent(trackingId);
         repository.save(entity);
     }
 
     public void markAsFailed(UUID messageId, String errorMessage) {
-        ProviderMessageEntity entity = repository.findById(messageId)
-            .orElseThrow(() -> new IllegalArgumentException(new StringBuilder("Message not found: ").append(messageId).toString()));
-
+        java.util.Optional<ProviderMessageEntity> opt = repository.findById(messageId);
+        if (!opt.isPresent()) {
+            throw new IllegalArgumentException(new StringBuilder("Message not found: ").append(messageId).toString());
+        }
+        ProviderMessageEntity entity = opt.get();
         entity.markAsFailed(errorMessage);
         repository.save(entity);
     }
     public void markAsDeadLetter(UUID messageId, String errorMessage) {
-        ProviderMessageEntity entity = repository.findById(messageId)
-                .orElseThrow(() -> new IllegalArgumentException(new StringBuilder("Message not found: ").append(messageId).toString()));
-
+        java.util.Optional<ProviderMessageEntity> opt = repository.findById(messageId);
+        if (!opt.isPresent()) {
+            throw new IllegalArgumentException(new StringBuilder("Message not found: ").append(messageId).toString());
+        }
+        ProviderMessageEntity entity = opt.get();
         entity.markAsDeadLetter(errorMessage);
+        repository.save(entity);
+    }
+    public void markAsRetrying(UUID messageId, String errorMessage) {
+        java.util.Optional<ProviderMessageEntity> opt = repository.findById(messageId);
+        if (!opt.isPresent()) {
+            throw new IllegalArgumentException(new StringBuilder("Message not found: ").append(messageId).toString());
+        }
+        ProviderMessageEntity entity = opt.get();
+        entity.markAsRetrying(errorMessage);
         repository.save(entity);
     }
 }

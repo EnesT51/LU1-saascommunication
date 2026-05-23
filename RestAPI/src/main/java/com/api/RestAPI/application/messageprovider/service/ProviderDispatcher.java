@@ -26,15 +26,21 @@ public class ProviderDispatcher {
                 .filter(p -> p.supports() == message.getProviderType())
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "No provider found for: " + message.getProviderType()
+                        String.format("No provider found for: %s", message.getProviderType())
                 ));
 
         ProviderSendResult result = provider.send(message);
 
         if (result.isSuccess()) {
             statusService.markAsSent(message.getId(), result.getTrackingId());
-        } else {
-            statusService.markAsFailed(message.getId(), result.getErrorMessage());
+            return;
         }
+
+        if (result.isRetryable()) {
+            statusService.markAsRetrying(message.getId(), result.getErrorMessage());
+            throw new RuntimeException(result.getErrorMessage());
+        }
+
+        statusService.markAsFailed(message.getId(), result.getErrorMessage());
     }
 }
