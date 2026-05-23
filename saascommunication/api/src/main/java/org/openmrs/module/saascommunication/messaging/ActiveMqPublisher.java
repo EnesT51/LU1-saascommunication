@@ -13,7 +13,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -42,18 +41,14 @@ public class ActiveMqPublisher implements AppointmentPublisher {
 	
 	private final String webApiUrl;
 	
-	private final String webApiUsername;
-	
-	private final String webApiPassword;
+	private final String webApiKey;
 	
 	public ActiveMqPublisher(MessageTracker tracker) {
 		this.tracker = tracker;
-		// Lazy laden bij aanmaken — duidelijke fout als env var ontbreekt
 		this.brokerUrl = getRequiredEnv("ACTIVEMQ_BROKER_URL");
 		this.queueName = getRequiredEnv("ACTIVEMQ_QUEUE_NAME");
 		this.webApiUrl = getRequiredEnv("ACTIVEMQ_WEB_API_URL");
-		this.webApiUsername = getRequiredEnv("ACTIVEMQ_USERNAME");
-		this.webApiPassword = getRequiredEnv("ACTIVEMQ_PASSWORD");
+		this.webApiKey = getRequiredEnv("RESTAPI_API_KEY");
 	}
 	
 	@Override
@@ -132,7 +127,7 @@ public class ActiveMqPublisher implements AppointmentPublisher {
 			connection.setRequestMethod("POST");
 			connection.setDoOutput(true);
 			connection.setRequestProperty("Content-Type", "application/fhir+json");
-			connection.setRequestProperty("Authorization", "Basic " + getBasicAuthToken());
+			connection.setRequestProperty("X-API-KEY", webApiKey);
 			
 			byte[] payloadBytes = payload.getBytes(StandardCharsets.UTF_8);
 			connection.setFixedLengthStreamingMode(payloadBytes.length);
@@ -175,11 +170,6 @@ public class ActiveMqPublisher implements AppointmentPublisher {
 		int start = idIdx + 6;
 		int end = payload.indexOf("\"", start);
 		return end > start ? payload.substring(start, end) : "unknown";
-	}
-	
-	private String getBasicAuthToken() {
-		String credentials = webApiUsername + ":" + webApiPassword;
-		return Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
 	}
 	
 	private static String getRequiredEnv(String key) {

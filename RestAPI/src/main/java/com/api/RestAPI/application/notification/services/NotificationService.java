@@ -21,6 +21,9 @@ import com.api.RestAPI.domain.notification.enums.NotificationType;
 import com.api.RestAPI.infrastructure.appointment.persistence.entities.AppointmentEntity;
 import com.api.RestAPI.infrastructure.notification.entities.Notification;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+
 @Service
 public class NotificationService {
 
@@ -32,16 +35,19 @@ public class NotificationService {
     private final IAppointmentRepository appointmentRepository;
     private final OrganizationProviderMapper providerMapper;
     private final MessageQueuePublisher messageQueuePublisher;
+    private final MeterRegistry meterRegistry;
 
     public NotificationService(
             INotificationRepository notificationRepository,
             IAppointmentRepository appointmentRepository,
             OrganizationProviderMapper providerMapper,
-            MessageQueuePublisher messageQueuePublisher) {
+            MessageQueuePublisher messageQueuePublisher,
+            MeterRegistry meterRegistry) {
         this.notificationRepository = notificationRepository;
         this.appointmentRepository = appointmentRepository;
         this.providerMapper = providerMapper;
         this.messageQueuePublisher = messageQueuePublisher;
+        this.meterRegistry = meterRegistry;
     }
 
     @Scheduled(fixedRate = 5000)
@@ -66,6 +72,7 @@ public class NotificationService {
             log.warn("Afspraak niet gevonden voor notificatie {}", notification.getId());
             notification.markAsFailed("Afspraak niet gevonden");
             notificationRepository.save(notification);
+            recordFailed("unknown", "afspraak_niet_gevonden");
             return;
         }
 
@@ -75,10 +82,10 @@ public class NotificationService {
             log.warn("Geen telefoonnummer voor afspraak {}", appointment.getAppointmentId());
             notification.markAsFailed("Geen telefoonnummer");
             notificationRepository.save(notification);
+            recordFailed("unknown", "geen_telefoonnummer");
             return;
         }
 
-        // Genereer message ID éénmalig zodat retries hetzelfde ID gebruiken
         UUID messageId = UUID.randomUUID();
 
         ProviderType primary = providerMapper.resolvePrimary(appointment.getOrganizationId());
@@ -92,13 +99,10 @@ public class NotificationService {
 
         if (!sent) {
             log.error("Notificatie {} permanent mislukt na primary + fallback", notification.getId());
+            recordFailed(primary.name(), "alle_providers_mislukt");
         }
     }
 
-    /**
-     * Probeert te publiceren naar de gegeven provider met het opgegeven aantal pogingen.
-     * Gebruikt exponential backoff tussen pogingen.
-     */
     private boolean tryPublish(Notification notification, AppointmentEntity appointment,
             ProviderType providerType, UUID messageId, int maxAttempts) {
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -108,6 +112,9 @@ public class NotificationService {
 
                 notification.markAsSent(providerType.name());
                 notificationRepository.save(notification);
+
+                // Metric: verstuurd per provider
+                recordSent(providerType.name());
 
                 log.info("Notificatie {} verstuurd via {} (poging {}/{}) voor org {}",
                         notification.getId(), providerType, attempt, maxAttempts, appointment.getOrganizationId());
@@ -122,10 +129,30 @@ public class NotificationService {
                 } else {
                     notification.markAsFailed(providerType + " mislukt: " + e.getMessage());
                     notificationRepository.save(notification);
+
+                    // Metric: mislukt per provider
+                    recordFailed(providerType.name(), "publish_mislukt");
                 }
             }
         }
         return false;
+    }
+
+    private void recordSent(String provider) {
+        Counter.builder("notifications_sent_total")
+                .description("Aantal succesvol verstuurde notificaties")
+                .tag("provider", provider)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    private void recordFailed(String provider, String reason) {
+        Counter.builder("notifications_failed_total")
+                .description("Aantal mislukte notificaties")
+                .tag("provider", provider)
+                .tag("reason", reason)
+                .register(meterRegistry)
+                .increment();
     }
 
     private ProviderMessage buildMessage(AppointmentEntity appointment, ProviderType providerType,
