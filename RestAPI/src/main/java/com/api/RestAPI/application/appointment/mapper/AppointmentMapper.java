@@ -17,6 +17,9 @@ import com.api.RestAPI.infrastructure.appointment.persistence.entities.Appointme
 @Component
 public class AppointmentMapper implements IAppointmentMapper {
 
+    public static final String PATIENT_PHONE_EXTENSION_URL =
+            "https://lu1-saascommunication.nl/fhir/StructureDefinition/patient-phone";
+
     public AppointmentEntity toEntity(Appointment appointment) {
         if (appointment == null) {
             throw new MappingException("Appointment mag niet null zijn");
@@ -115,11 +118,16 @@ public class AppointmentMapper implements IAppointmentMapper {
 
         for (Extension extension : appointment.getExtension()) {
 
-            if ("patientPhone".equals(extension.getUrl())
+            if (isPatientPhoneExtension(extension)
                     && extension.getValue() instanceof StringType stringType) {
 
                 appointmentEntity.setPatientPhoneNumber(stringType.getValue());
             }
         }
+    }
+
+    private boolean isPatientPhoneExtension(Extension extension) {
+        return PATIENT_PHONE_EXTENSION_URL.equals(extension.getUrl())
+                || "patientPhone".equals(extension.getUrl());
     }
 }

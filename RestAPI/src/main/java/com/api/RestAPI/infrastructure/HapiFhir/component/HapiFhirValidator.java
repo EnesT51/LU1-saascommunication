@@ -11,6 +11,7 @@ import com.api.RestAPI.infrastructure.HapiFhir.interfaces.IHapiFhirValidator;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.validation.FhirValidator;
+import ca.uhn.fhir.validation.ResultSeverityEnum;
 import ca.uhn.fhir.validation.SingleValidationMessage;
 import ca.uhn.fhir.validation.ValidationResult;
 
@@ -39,8 +40,18 @@ public class HapiFhirValidator implements IHapiFhirValidator {
             IParser parser = fhirContext.newJsonParser();
             Appointment resource = parser.parseResource(Appointment.class, fhirJson);
             ValidationResult result = fhirValidator.validateWithResult(resource);
+            String validationMessage = result.getMessages()
+                    .stream()
+                    .filter(this::isValidationFailure)
+                    .map(SingleValidationMessage::getMessage)
+                    .collect(Collectors.joining(", "));
+
+            if (!validationMessage.isBlank()) {
+                throw new InvalidFhirJsonException("FHIR validation failed: " + validationMessage);
+            }
+
             if (!result.isSuccessful()) {
-                String validationMessage = result.getMessages()
+                validationMessage = result.getMessages()
                         .stream()
                         .map(SingleValidationMessage::getMessage)
                         .collect(Collectors.joining(", "));
@@ -56,5 +67,10 @@ public class HapiFhirValidator implements IHapiFhirValidator {
         } catch (Exception ex) {
             throw new InvalidFhirJsonException("Error during FHIR validation: " + ex.getMessage());
         }
+    }
+
+    private boolean isValidationFailure(SingleValidationMessage message) {
+        return message.getSeverity() == ResultSeverityEnum.ERROR
+                || message.getSeverity() == ResultSeverityEnum.FATAL;
     }
 }
