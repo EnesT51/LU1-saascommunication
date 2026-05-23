@@ -65,8 +65,22 @@ public class AsyncFlowProvider implements MessageProvider {
             return ProviderSendResult.failed(error);
 
         } catch (Exception ex) {
-            logger.error("AsyncFlow request failed: {}", ex.getMessage());
-            return ProviderSendResult.failed(ex.getMessage());
+            String errorMessage = ex.getMessage();
+
+            logger.error("AsyncFlow request failed: {}", errorMessage);
+
+            if (
+                    errorMessage != null &&
+                    (
+                            errorMessage.contains("401") ||
+                            errorMessage.contains("403") ||
+                            errorMessage.contains("400")
+                    )
+            ) {
+                return ProviderSendResult.failed(errorMessage);
+            }
+
+            return ProviderSendResult.retryableFailure(errorMessage);
         }
     }
 }
