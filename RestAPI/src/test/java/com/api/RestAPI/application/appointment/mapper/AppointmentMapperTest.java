@@ -39,7 +39,7 @@ class AppointmentMapperTest {
         appointment.addParticipant(participant("Patient/patient-1", "Jane Patient"));
         appointment.addParticipant(participant("Practitioner/practitioner-1", "Dr Smith"));
         appointment.addParticipant(participant("Location/location-1", "Room 1"));
-        appointment.addExtension(new Extension("patientPhone", new StringType("+31612345678")));
+        appointment.addExtension(new Extension(AppointmentMapper.PATIENT_PHONE_EXTENSION_URL, new StringType("+31612345678")));
 
         AppointmentEntity result = mapper.toEntity(appointment);
 
