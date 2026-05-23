@@ -1,6 +1,7 @@
 package com.api.RestAPI.application.appointment.service;
 
 import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,7 +36,7 @@ public class AppointmentCleanupService {
     }
     @Scheduled(cron = "0 30 2 * * *")
     public void deleteExpiredAppointments() {
-        Instant cutoffDate = Instant.now().minus(1, ChronoUnit.YEARS);
+        Instant cutoffDate = ZonedDateTime.now().minusYears(1).toInstant();
         long deletedCount = repository.deleteByCreatedAtBefore(cutoffDate);
         System.out.println("Expired appointments deleted: " + deletedCount);
     }
