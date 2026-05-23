@@ -10,5 +10,5 @@ import com.api.RestAPI.infrastructure.appointment.persistence.entities.Appointme
 @Repository
 public interface JpaAppointmentRepository extends JpaRepository<AppointmentEntity, UUID> {
     Optional<AppointmentEntity> findByAppointmentId(String appointmentId);
-    long deleteByCreatedAtBefore(Instant cutoffDate);
+    long deleteByEndBefore(Instant cutoffDate);
 }

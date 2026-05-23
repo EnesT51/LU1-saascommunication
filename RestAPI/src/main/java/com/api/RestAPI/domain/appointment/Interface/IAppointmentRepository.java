@@ -15,5 +15,5 @@ public interface IAppointmentRepository
     Optional<AppointmentEntity> findByAppointmentId(String appointmentId);
     AppointmentEntity save(AppointmentEntity appointment);
     List<AppointmentEntity> getAppointments();
-    long deleteByCreatedAtBefore(Instant cutoffDate);
+    long deleteByEndBefore(Instant cutoffDate);
 }

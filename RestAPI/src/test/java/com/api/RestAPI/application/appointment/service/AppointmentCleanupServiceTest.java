@@ -38,15 +38,15 @@ class AppointmentCleanupServiceTest {
     }
 
     @Test
-    @DisplayName("Should delete appointments created more than one year ago")
+    @DisplayName("Should delete appointments that ended more than one year ago")
     void deleteExpiredAppointmentsUsesOneYearCutoff() {
-        when(appointmentRepository.deleteByCreatedAtBefore(org.mockito.ArgumentMatchers.any()))
+        when(appointmentRepository.deleteByEndBefore(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(2L);
 
         assertDoesNotThrow(cleanupService::deleteExpiredAppointments);
 
         ArgumentCaptor<Instant> cutoffCaptor = ArgumentCaptor.forClass(Instant.class);
-        verify(appointmentRepository).deleteByCreatedAtBefore(cutoffCaptor.capture());
+        verify(appointmentRepository).deleteByEndBefore(cutoffCaptor.capture());
         assertCutoffAround(cutoffCaptor.getValue(), Duration.ofDays(365));
     }
 
