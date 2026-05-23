@@ -36,6 +36,7 @@ public class SecurityConfig {
                     "/actuator/health",
                     "/api/message-provider/**"
                 ).permitAll()
+                .requestMatchers("/api/message-provider/**").hasRole("API")
                 .anyRequest().authenticated()
             )
             .httpBasic(httpBasic -> httpBasic.disable())

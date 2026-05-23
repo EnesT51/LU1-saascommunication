@@ -35,6 +35,7 @@ public class ProviderMessageEntity {
 
     private LocalDateTime createdAt;
     private LocalDateTime sentAt;
+    private Integer retryCount = 0;
 
     public ProviderMessageEntity() {
     }
@@ -67,6 +68,18 @@ public class ProviderMessageEntity {
 
     public void markAsFailed(String errorMessage) {
         this.status = MessageStatus.FAILED;
+        this.errorMessage = errorMessage;
+    }
+    public Integer getRetryCount() {
+        return retryCount;
+    }
+    public void markAsRetrying() {
+        this.status = MessageStatus.RETRYING;
+        this.retryCount = this.retryCount == null ? 1 : this.retryCount + 1;
+    }
+
+    public void markAsDeadLetter(String errorMessage) {
+        this.status = MessageStatus.DEAD_LETTER;
         this.errorMessage = errorMessage;
     }
 }

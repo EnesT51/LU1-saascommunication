@@ -21,6 +21,12 @@ public class RabbitMQConfig {
     public static final String LEGACYLINK_QUEUE = "legacylink.queue";
     public static final String ASYNCFLOW_QUEUE = "asyncflow.queue";
 
+    public static final String PROVIDER_DLX = "provider.dlx";
+    public static final String SWIFTSEND_DLQ = "swiftsend.dlq";
+    public static final String SECUREPOST_DLQ = "securepost.dlq";
+    public static final String LEGACYLINK_DLQ = "legacylink.dlq";
+    public static final String ASYNCFLOW_DLQ = "asyncflow.dlq";
+
     public static final String SWIFTSEND_ROUTING_KEY = "provider.swiftsend";
     public static final String SECUREPOST_ROUTING_KEY = "provider.securepost";
     public static final String LEGACYLINK_ROUTING_KEY = "provider.legacylink";
@@ -29,6 +35,10 @@ public class RabbitMQConfig {
     @Bean
     public TopicExchange messageExchange() {
         return new TopicExchange(MESSAGE_EXCHANGE);
+    }
+    @Bean
+    public TopicExchange providerDeadLetterExchange() {
+        return new TopicExchange(PROVIDER_DLX);
     }
 
     @Bean
@@ -48,22 +58,34 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue swiftsendQueue() {
-        return QueueBuilder.durable(SWIFTSEND_QUEUE).build();
+        return QueueBuilder.durable(SWIFTSEND_QUEUE)
+                .withArgument("x-dead-letter-exchange", PROVIDER_DLX)
+                .withArgument("x-dead-letter-routing-key", SWIFTSEND_ROUTING_KEY)
+                .build();
     }
 
     @Bean
     public Queue securepostQueue() {
-        return QueueBuilder.durable(SECUREPOST_QUEUE).build();
+        return QueueBuilder.durable(SECUREPOST_QUEUE)
+                .withArgument("x-dead-letter-exchange", PROVIDER_DLX)
+                .withArgument("x-dead-letter-routing-key", SECUREPOST_ROUTING_KEY)
+                .build();
     }
 
     @Bean
     public Queue legacylinkQueue() {
-        return QueueBuilder.durable(LEGACYLINK_QUEUE).build();
+        return QueueBuilder.durable(LEGACYLINK_QUEUE)
+                .withArgument("x-dead-letter-exchange", PROVIDER_DLX)
+                .withArgument("x-dead-letter-routing-key", LEGACYLINK_ROUTING_KEY)
+                .build();
     }
 
     @Bean
     public Queue asyncflowQueue() {
-        return QueueBuilder.durable(ASYNCFLOW_QUEUE).build();
+        return QueueBuilder.durable(ASYNCFLOW_QUEUE)
+                .withArgument("x-dead-letter-exchange", PROVIDER_DLX)
+                .withArgument("x-dead-letter-routing-key", ASYNCFLOW_ROUTING_KEY)
+                .build();
     }
 
     @Bean
@@ -95,6 +117,56 @@ public class RabbitMQConfig {
         return BindingBuilder
                 .bind(asyncflowQueue())
                 .to(messageExchange())
+                .with(ASYNCFLOW_ROUTING_KEY);
+    }
+    @Bean
+    public Queue swiftsendDlq() {
+        return QueueBuilder.durable(SWIFTSEND_DLQ).build();
+    }
+
+    @Bean
+    public Queue securepostDlq() {
+        return QueueBuilder.durable(SECUREPOST_DLQ).build();
+    }
+
+    @Bean
+    public Queue legacylinkDlq() {
+        return QueueBuilder.durable(LEGACYLINK_DLQ).build();
+    }
+
+    @Bean
+    public Queue asyncflowDlq() {
+        return QueueBuilder.durable(ASYNCFLOW_DLQ).build();
+    }
+    @Bean
+    public Binding swiftsendDlqBinding() {
+        return BindingBuilder
+                .bind(swiftsendDlq())
+                .to(providerDeadLetterExchange())
+                .with(SWIFTSEND_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding securepostDlqBinding() {
+        return BindingBuilder
+                .bind(securepostDlq())
+                .to(providerDeadLetterExchange())
+                .with(SECUREPOST_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding legacylinkDlqBinding() {
+        return BindingBuilder
+                .bind(legacylinkDlq())
+                .to(providerDeadLetterExchange())
+                .with(LEGACYLINK_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding asyncflowDlqBinding() {
+        return BindingBuilder
+                .bind(asyncflowDlq())
+                .to(providerDeadLetterExchange())
                 .with(ASYNCFLOW_ROUTING_KEY);
     }
 }

@@ -30,4 +30,11 @@ public class ProviderMessageStatusService {
         entity.markAsFailed(errorMessage);
         repository.save(entity);
     }
+    public void markAsDeadLetter(UUID messageId, String errorMessage) {
+        ProviderMessageEntity entity = repository.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException(new StringBuilder("Message not found: ").append(messageId).toString()));
+
+        entity.markAsDeadLetter(errorMessage);
+        repository.save(entity);
+    }
 }
