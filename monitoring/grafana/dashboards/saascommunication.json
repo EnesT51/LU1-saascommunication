@@ -2,12 +2,38 @@
   "title": "ActiveMQ — Afspraken Queue",
   "uid": "saascommunication-activemq",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "10s",
   "time": { "from": "now-1h", "to": "now" },
   "timezone": "browser",
   "tags": ["saascommunication", "activemq"],
   "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "pluginId": "prometheus",
+        "label": "Prometheus datasource",
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false,
+        "current": {}
+      },
+      {
+        "name": "loki_datasource",
+        "type": "datasource",
+        "pluginId": "loki",
+        "label": "Loki datasource",
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false,
+        "current": {}
+      }
+    ]
+  },
   "panels": [
     {
       "id": 1,
@@ -15,7 +41,7 @@
       "title": "Berichten in queue",
       "description": "Afspraken die nu wachten in ActiveMQ om verwerkt te worden",
       "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
         { "expr": "activemq_total_messages", "legendFormat": "In queue", "refId": "A" }
       ],
@@ -45,7 +71,7 @@
       "title": "Totaal verstuurd",
       "description": "Totaal aantal afspraken verstuurd naar ActiveMQ",
       "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
         { "expr": "activemq_total_enqueued", "legendFormat": "Verstuurd", "refId": "A" }
       ],
@@ -69,7 +95,7 @@
       "title": "Succesvol verwerkt",
       "description": "Afspraken die uit de queue zijn gehaald en verwerkt door de RestAPI",
       "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
         { "expr": "activemq_total_dequeued", "legendFormat": "Verwerkt", "refId": "A" }
       ],
@@ -93,7 +119,7 @@
       "title": "Consumers verbonden",
       "description": "Aantal actieve consumers (RestAPI) op de queue",
       "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
         { "expr": "activemq_total_consumers", "legendFormat": "Consumers", "refId": "A" }
       ],
@@ -119,10 +145,10 @@
     {
       "id": 5,
       "type": "timeseries",
-      "title": "Berichtenflow over tijd",
-      "description": "Afspraken verstuurd vs verwerkt per minuut, en hoeveel er wachten",
+      "title": "Berichtenflow over tijd (throughput)",
+      "description": "Afspraken verstuurd vs verwerkt per minuut — maatstaf voor prestaties",
       "gridPos": { "h": 9, "w": 24, "x": 0, "y": 5 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
         { "expr": "rate(activemq_total_enqueued[2m]) * 60", "legendFormat": "Verstuurd / min", "refId": "A" },
         { "expr": "rate(activemq_total_dequeued[2m]) * 60", "legendFormat": "Verwerkt / min", "refId": "B" },
@@ -136,7 +162,73 @@
         "defaults": {
           "unit": "short",
           "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "In queue (wachtend)" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Foutrate — onverwerkte berichten",
+      "description": "Berichten die zijn verstuurd maar niet verwerkt. Stijgende lijn = fout in pipeline.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "activemq_total_enqueued - activemq_total_dequeued",
+          "legendFormat": "Onverwerkt (verstuurd - verwerkt)",
+          "refId": "A"
         }
+      ],
+      "options": {
+        "tooltip": { "mode": "single" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "lineWidth": 2, "fillOpacity": 20 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 20 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "logs",
+      "title": "Foutmeldingen (ERROR logs)",
+      "description": "Recente foutmeldingen uit de saascommunication module en RestAPI",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "targets": [
+        {
+          "expr": "{job=~\".+\"} |= \"ERROR\"",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none",
+        "enableLogDetails": true
       }
     }
   ]

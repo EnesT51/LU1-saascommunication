@@ -25,6 +25,7 @@ services:
     depends_on:
       - db
       - messagequeue
+      - lgtm
     environment:
       OMRS_DEV_DEBUG_PORT: "5005"
       OMRS_CONFIG_MODULE_WEB_ADMIN: "true"
@@ -39,13 +40,22 @@ services:
       ACTIVEMQ_WEB_API_URL: ${ACTIVEMQ_WEB_API_URL}
       ACTIVEMQ_USERNAME: ${ACTIVEMQ_USERNAME}
       ACTIVEMQ_PASSWORD: ${ACTIVEMQ_PASSWORD}
+      OTEL_SERVICE_NAME: saascommunication
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION: explicit_bucket_histogram
       JAVA_TOOL_OPTIONS: >-
+        -javaagent:/opt/otel/otel-agent.jar
         -Djavax.net.ssl.trustStore=/opt/certs/client.ts
         -Djavax.net.ssl.trustStorePassword=${TRUSTSTORE_PASSWORD}
     volumes:
       - openmrs-data:/openmrs/data
       - ./saascommunication/omod/target/saascommunication-1.0.0-SNAPSHOT.omod:/openmrs/data/modules/saascommunication.omod
       - ./activemq/certs:/opt/certs:ro
+      - ./activemq/otel-agent.jar:/opt/otel/otel-agent.jar:ro
 
   db:
     image: mariadb:10.11.7
@@ -135,6 +145,7 @@ services:
       OTEL_TRACES_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: otlp
       OTEL_LOGS_EXPORTER: otlp
+      OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION: explicit_bucket_histogram
 
       RABBITMQ_HOST: ${RABBITMQ_HOST}
       RABBITMQ_PORT: ${RABBITMQ_PORT}
