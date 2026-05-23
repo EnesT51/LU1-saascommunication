@@ -73,8 +73,9 @@ public class ProviderMessageEntity {
     public Integer getRetryCount() {
         return retryCount;
     }
-    public void markAsRetrying() {
+    public void markAsRetrying(String errorMessage) {
         this.status = MessageStatus.RETRYING;
+        this.errorMessage = errorMessage;
         this.retryCount = this.retryCount == null ? 1 : this.retryCount + 1;
     }
 
