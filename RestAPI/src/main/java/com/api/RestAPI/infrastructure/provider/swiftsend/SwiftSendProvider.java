@@ -3,6 +3,7 @@ package com.api.RestAPI.infrastructure.provider.swiftsend;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageProvider;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
+import com.api.RestAPI.domain.message.model.ProviderSendResult;
 import com.api.RestAPI.infrastructure.provider.swiftsend.dto.SwiftSendRequest;
 import com.api.RestAPI.infrastructure.provider.swiftsend.dto.SwiftSendResponse;
 
@@ -11,8 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-
-import com.api.RestAPI.application.messageprovider.service.ProviderMessageStatusService;
 
 import java.util.Arrays;
 
@@ -23,16 +22,11 @@ public class SwiftSendProvider implements MessageProvider {
 
     private final RestTemplate restTemplate;
     private final SwiftSendProperties properties;
-    private final ProviderMessageStatusService statusService;
-    
-    public SwiftSendProvider(
-        SwiftSendProperties properties,
-        ProviderMessageStatusService statusService
-) {
-    this.properties = properties;
-    this.statusService = statusService;
-    this.restTemplate = new RestTemplate();
-}
+
+    public SwiftSendProvider(SwiftSendProperties properties) {
+        this.properties = properties;
+        this.restTemplate = new RestTemplate();
+    }
 
     @Override
     public ProviderType supports() {
@@ -40,7 +34,7 @@ public class SwiftSendProvider implements MessageProvider {
     }
 
     @Override
-    public void send(ProviderMessage message) {
+    public ProviderSendResult send(ProviderMessage message) {
         SwiftSendRequest request = new SwiftSendRequest(
                 "SMS",
                 Arrays.asList(message.getRecipient()),
@@ -64,33 +58,17 @@ public class SwiftSendProvider implements MessageProvider {
             SwiftSendResponse body = response.getBody();
 
             if (body != null && body.isSuccess()) {
-                statusService.markAsSent(message.getId(), body.getMessageId());
                 logger.info("SwiftSend message sent successfully. MessageId={}", body.getMessageId());
-            } else {
-                String error = body != null ? body.getError() : "No response body";
-                statusService.markAsFailed(message.getId(), error);
-                logger.warn("SwiftSend failed. Error={}", error);
+                return ProviderSendResult.success(body.getMessageId());
             }
+
+            String error = body != null ? body.getError() : "No response body";
+            logger.warn("SwiftSend failed. Error={}", error);
+            return ProviderSendResult.failed(error);
 
         } catch (Exception ex) {
-
-            String errorMessage = ex.getMessage();
-
-            statusService.markAsFailed(message.getId(), errorMessage);
-
-            logger.error("SwiftSend request failed: {}", errorMessage);
-
-            if (
-                    errorMessage != null &&
-                    (
-                        errorMessage.contains("401") ||
-                        errorMessage.contains("403")
-                    )
-            ) {
-                return;
-            }
-
-            throw ex;
+            logger.error("SwiftSend request failed: {}", ex.getMessage());
+            return ProviderSendResult.failed(ex.getMessage());
         }
     }
 }
