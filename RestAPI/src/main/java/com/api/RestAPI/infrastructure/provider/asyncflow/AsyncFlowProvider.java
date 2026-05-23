@@ -3,6 +3,7 @@ package com.api.RestAPI.infrastructure.provider.asyncflow;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageProvider;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
+import com.api.RestAPI.domain.message.model.ProviderSendResult;
 import com.api.RestAPI.infrastructure.provider.asyncflow.dto.AsyncFlowRequest;
 import com.api.RestAPI.infrastructure.provider.asyncflow.dto.AsyncFlowResponse;
 
@@ -12,8 +13,6 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import com.api.RestAPI.application.messageprovider.service.ProviderMessageStatusService;
-
 @Component
 public class AsyncFlowProvider implements MessageProvider {
 
@@ -21,11 +20,9 @@ public class AsyncFlowProvider implements MessageProvider {
 
     private final RestTemplate restTemplate;
     private final AsyncFlowProperties properties;
-    private final ProviderMessageStatusService statusService;
 
-    public AsyncFlowProvider(AsyncFlowProperties properties, ProviderMessageStatusService statusService) {
+    public AsyncFlowProvider(AsyncFlowProperties properties) {
         this.properties = properties;
-        this.statusService = statusService;
         this.restTemplate = new RestTemplate();
     }
 
@@ -35,7 +32,7 @@ public class AsyncFlowProvider implements MessageProvider {
     }
 
     @Override
-    public void send(ProviderMessage message) {
+    public ProviderSendResult send(ProviderMessage message) {
         AsyncFlowRequest request = new AsyncFlowRequest(
                 message.getRecipient(),
                 message.getContent(),
@@ -59,23 +56,17 @@ public class AsyncFlowProvider implements MessageProvider {
             AsyncFlowResponse body = response.getBody();
 
             if (body != null && body.isAccepted()) {
-                statusService.markAsSent(message.getId(), body.getTrackingId());
-
-                logger.info(
-                        "AsyncFlow message accepted. TrackingId={}",
-                        body.getTrackingId()
-                );
-            } else {
-                String error = body != null ? body.getMessage() : "No response body";
-
-                statusService.markAsFailed(message.getId(), error);
-
-                logger.warn("AsyncFlow failed. Message={}", error);
+                logger.info("AsyncFlow message accepted. TrackingId={}", body.getTrackingId());
+                return ProviderSendResult.success(body.getTrackingId());
             }
 
+            String error = body != null ? body.getMessage() : "No response body";
+            logger.warn("AsyncFlow failed. Message={}", error);
+            return ProviderSendResult.failed(error);
+
         } catch (Exception ex) {
-            statusService.markAsFailed(message.getId(), ex.getMessage());
             logger.error("AsyncFlow request failed: {}", ex.getMessage());
+            return ProviderSendResult.failed(ex.getMessage());
         }
     }
 }
