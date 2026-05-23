@@ -38,7 +38,7 @@ public class ProviderDispatcher {
 
         if (result.isRetryable()) {
             statusService.markAsRetrying(message.getId(), result.getErrorMessage());
-            throw new RuntimeException(result.getErrorMessage());
+            return;
         }
 
         statusService.markAsFailed(message.getId(), result.getErrorMessage());
