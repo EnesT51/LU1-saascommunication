@@ -1,9 +1,9 @@
 package com.api.RestAPI.infrastructure.provider.securepost;
 
-import com.api.RestAPI.application.messageprovider.service.ProviderMessageStatusService;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageProvider;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
+import com.api.RestAPI.domain.message.model.ProviderSendResult;
 import com.api.RestAPI.infrastructure.provider.securepost.dto.*;
 
 import org.slf4j.Logger;
@@ -19,14 +19,9 @@ public class SecurePostProvider implements MessageProvider {
 
     private final RestTemplate restTemplate;
     private final SecurePostProperties properties;
-    private final ProviderMessageStatusService statusService;
 
-    public SecurePostProvider(
-            SecurePostProperties properties,
-            ProviderMessageStatusService statusService
-    ) {
+    public SecurePostProvider(SecurePostProperties properties) {
         this.properties = properties;
-        this.statusService = statusService;
         this.restTemplate = new RestTemplate();
     }
 
@@ -36,7 +31,7 @@ public class SecurePostProvider implements MessageProvider {
     }
 
     @Override
-    public void send(ProviderMessage message) {
+    public ProviderSendResult send(ProviderMessage message) {
         try {
             String accessToken = authenticate();
 
@@ -63,17 +58,17 @@ public class SecurePostProvider implements MessageProvider {
             SecurePostMessageResponse body = response.getBody();
 
             if (body != null && body.isDelivered()) {
-                statusService.markAsSent(message.getId(), body.getTrackingId());
                 logger.info("SecurePost message delivered. TrackingId={}", body.getTrackingId());
-            } else {
-                String error = body != null ? body.getErrorMessage() : "No response body";
-                statusService.markAsFailed(message.getId(), error);
-                logger.warn("SecurePost failed. Error={}", error);
+                return ProviderSendResult.success(body.getTrackingId());
             }
 
+            String error = body != null ? body.getErrorMessage() : "No response body";
+            logger.warn("SecurePost failed. Error={}", error);
+            return ProviderSendResult.failed(error);
+
         } catch (Exception ex) {
-            statusService.markAsFailed(message.getId(), ex.getMessage());
             logger.error("SecurePost message request failed: {}", ex.getMessage());
+            return ProviderSendResult.failed(ex.getMessage());
         }
     }
 
