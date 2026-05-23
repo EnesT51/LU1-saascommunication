@@ -1,7 +1,7 @@
 package com.api.RestAPI.application.notification.services;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.ZonedDateTime;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ public class NotificationCleanupService {
     @Scheduled(cron = "0 0 3 * * *")
     public void cleanupOldNotifications() {
 
-        Instant cutoffDate = Instant.now().minus(1, ChronoUnit.YEARS);
+        Instant cutoffDate = ZonedDateTime.now().minusYears(1).toInstant();
         long deletedCount = notificationRepository.deleteByCreatedAtBefore(cutoffDate);
         
         System.out.println("Deleted " + deletedCount + " old notifications.");
