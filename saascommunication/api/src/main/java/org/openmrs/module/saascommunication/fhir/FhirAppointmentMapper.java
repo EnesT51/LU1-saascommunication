@@ -113,7 +113,7 @@ public class FhirAppointmentMapper implements AppointmentMapper {
 		}
 		
 		json.append("\"extension\":[");
-		json.append("{\"url\":\"patientPhone\",\"valueString\":\"").append(escape(phone)).append("\"}");
+		json.append("{\"url\":\"http://saascommunication.openmrs.org/fhir/StructureDefinition/patientPhone\",\"valueString\":\"").append(escape(phone)).append("\"}");
 		json.append("],");
 	}
 	

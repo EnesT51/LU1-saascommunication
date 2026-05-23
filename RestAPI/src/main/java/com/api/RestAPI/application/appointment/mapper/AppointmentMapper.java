@@ -116,7 +116,7 @@ public class AppointmentMapper implements IAppointmentMapper {
 
         for (Extension extension : appointment.getExtension()) {
 
-            if ("patientPhone".equals(extension.getUrl())
+            if ("http://saascommunication.openmrs.org/fhir/StructureDefinition/patientPhone".equals(extension.getUrl())
                     && extension.getValue() instanceof StringType stringType) {
 
                 appointmentEntity.setPatientPhoneNumber(stringType.getValue());
