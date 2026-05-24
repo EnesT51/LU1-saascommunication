@@ -114,7 +114,7 @@ services:
       - fakecomworld
     environment:
       API_KEY: ${API_KEY}
-
+      USER_PASSWORD: ${USER_PASSWORD}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}

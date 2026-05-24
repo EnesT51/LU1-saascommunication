@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import com.api.RestAPI.application.messageprovider.interfaces.MessageProviderUseCase;
 import com.api.RestAPI.domain.message.enums.ProviderType;
+import com.api.RestAPI.infrastructure.persistence.message.repository.ProviderMessageJpaRepository;
 import com.api.RestAPI.presentation.messageprovider.request.SendMessageRequest;
 
 @DisplayName("MessageProviderController Tests")
@@ -20,7 +21,8 @@ class MessageProviderControllerTest {
     @DisplayName("Should queue message from request")
     void sendMessageQueuesProviderMessage() {
         MessageProviderUseCase useCase = mock(MessageProviderUseCase.class);
-        MessageProviderController controller = new MessageProviderController(useCase);
+        ProviderMessageJpaRepository repository = mock(ProviderMessageJpaRepository.class);
+        MessageProviderController controller = new MessageProviderController(useCase, repository);
         SendMessageRequest request = new SendMessageRequest();
         request.setProvider("swiftsend");
         request.setRecipient("recipient");
@@ -42,7 +44,8 @@ class MessageProviderControllerTest {
     @DisplayName("Should reject unknown provider")
     void sendMessageRejectsUnknownProvider() {
         MessageProviderUseCase useCase = mock(MessageProviderUseCase.class);
-        MessageProviderController controller = new MessageProviderController(useCase);
+        ProviderMessageJpaRepository repository = mock(ProviderMessageJpaRepository.class);
+        MessageProviderController controller = new MessageProviderController(useCase, repository);
         SendMessageRequest request = new SendMessageRequest();
         request.setProvider("unknown");
 

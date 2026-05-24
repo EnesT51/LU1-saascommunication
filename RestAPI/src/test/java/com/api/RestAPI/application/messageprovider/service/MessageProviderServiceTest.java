@@ -2,6 +2,7 @@ package com.api.RestAPI.application.messageprovider.service;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageQueuePublisher;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
+import com.api.RestAPI.infrastructure.persistence.message.entity.ProviderMessageEntity;
+import com.api.RestAPI.infrastructure.persistence.message.repository.ProviderMessageJpaRepository;
 
 @DisplayName("MessageProviderService Tests")
 class MessageProviderServiceTest {
@@ -17,11 +20,20 @@ class MessageProviderServiceTest {
     @DisplayName("Should publish message to queue")
     void queueMessagePublishesMessage() {
         MessageQueuePublisher publisher = mock(MessageQueuePublisher.class);
-        MessageProviderService service = new MessageProviderService(publisher);
+        ProviderMessageJpaRepository repository = mock(ProviderMessageJpaRepository.class);
+        MessageProviderService service = new MessageProviderService(publisher, repository);
         ProviderMessage message = new ProviderMessage(ProviderType.SWIFTSEND, "recipient", "content", "subject");
+        when(repository.save(org.mockito.ArgumentMatchers.any(ProviderMessageEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         service.queueMessage(message);
 
-        verify(publisher).publish(message);
+        verify(repository).save(org.mockito.ArgumentMatchers.any(ProviderMessageEntity.class));
+        verify(publisher).publish(org.mockito.ArgumentMatchers.argThat(published ->
+                published.getProviderType() == ProviderType.SWIFTSEND
+                        && "recipient".equals(published.getRecipient())
+                        && "content".equals(published.getContent())
+                        && "subject".equals(published.getSubject())
+        ));
     }
 }
