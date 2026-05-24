@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageProvider;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
+import com.api.RestAPI.domain.message.model.ProviderSendResult;
 
 @DisplayName("ProviderDispatcher Tests")
 class ProviderDispatcherTest {
@@ -21,15 +23,22 @@ class ProviderDispatcherTest {
     @Test
     @DisplayName("Should send message through matching provider")
     void dispatchSendsMessageThroughMatchingProvider() {
+        // Arrange
         MessageProvider swiftSend = mock(MessageProvider.class);
         MessageProvider securePost = mock(MessageProvider.class);
-        ProviderMessage message = new ProviderMessage(ProviderType.SECUREPOST, "recipient", "content", "subject");
+        ProviderMessageStatusService statusService = mock(ProviderMessageStatusService.class);
+
+        ProviderMessage message = new ProviderMessage(ProviderType.SECUREPOST, "recipient", "content", "subject", UUID.randomUUID());
+
         when(swiftSend.supports()).thenReturn(ProviderType.SWIFTSEND);
         when(securePost.supports()).thenReturn(ProviderType.SECUREPOST);
+        when(securePost.send(message)).thenReturn(ProviderSendResult.success("tracking-123"));
 
-        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend, securePost));
+        // Act
+        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend, securePost), statusService);
         dispatcher.dispatch(message);
 
+        // Assert
         verify(securePost).send(message);
         verify(swiftSend, never()).send(message);
     }
@@ -37,12 +46,16 @@ class ProviderDispatcherTest {
     @Test
     @DisplayName("Should throw when no provider supports message")
     void dispatchThrowsWhenNoProviderSupportsMessage() {
+        // Arrange
         MessageProvider swiftSend = mock(MessageProvider.class);
-        ProviderMessage message = new ProviderMessage(ProviderType.ASYNCFLOW, "recipient", "content", "subject");
+        ProviderMessageStatusService statusService = mock(ProviderMessageStatusService.class);
+
+        ProviderMessage message = new ProviderMessage(ProviderType.ASYNCFLOW, "recipient", "content", "subject", UUID.randomUUID());
         when(swiftSend.supports()).thenReturn(ProviderType.SWIFTSEND);
 
-        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend));
+        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend), statusService);
 
+        // Act + Assert
         assertThrows(IllegalArgumentException.class, () -> dispatcher.dispatch(message));
     }
 }

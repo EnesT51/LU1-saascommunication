@@ -6,7 +6,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.ArrayList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.api.RestAPI.application.messageprovider.service.OrganizationProviderMapper;
+import com.api.RestAPI.application.messageprovider.service.OrganizationTimezoneMapper;
 import com.api.RestAPI.application.notification.interfaces.INotificationRepository;
 import com.api.RestAPI.domain.appointment.Interface.IAppointmentRepository;
 import com.api.RestAPI.domain.message.enums.ProviderType;
@@ -38,6 +38,7 @@ public class NotificationService {
     private final INotificationRepository notificationRepository;
     private final IAppointmentRepository appointmentRepository;
     private final OrganizationProviderMapper providerMapper;
+    private final OrganizationTimezoneMapper timezoneMapper;
     private final MessageQueuePublisher messageQueuePublisher;
     private final RabbitMQMessageQueuePublisher rabbitPublisher;
     private final MeterRegistry meterRegistry;
@@ -46,12 +47,14 @@ public class NotificationService {
             INotificationRepository notificationRepository,
             IAppointmentRepository appointmentRepository,
             OrganizationProviderMapper providerMapper,
+            OrganizationTimezoneMapper timezoneMapper,
             MessageQueuePublisher messageQueuePublisher,
             RabbitMQMessageQueuePublisher rabbitPublisher,
             MeterRegistry meterRegistry) {
         this.notificationRepository = notificationRepository;
         this.appointmentRepository = appointmentRepository;
         this.providerMapper = providerMapper;
+        this.timezoneMapper = timezoneMapper;
         this.messageQueuePublisher = messageQueuePublisher;
         this.rabbitPublisher = rabbitPublisher;
         this.meterRegistry = meterRegistry;
@@ -154,7 +157,6 @@ public class NotificationService {
                 notification.markAsSent(providerType.name());
                 notificationRepository.save(notification);
 
-                // Metric: verstuurd per provider
                 recordSent(providerType.name());
 
                 log.info("Notificatie {} verstuurd via {} (poging {}/{}) voor org {}",
@@ -170,8 +172,6 @@ public class NotificationService {
                 } else {
                     notification.markAsFailed(providerType + " mislukt: " + e.getMessage());
                     notificationRepository.save(notification);
-
-                    // Metric: mislukt per provider
                     recordFailed(providerType.name(), "publish_mislukt");
                 }
             }
@@ -196,15 +196,16 @@ public class NotificationService {
                 .increment();
     }
 
-    private static final DateTimeFormatter DATE_FORMATTER =
-            DateTimeFormatter.ofPattern("EEEE, MMMM d yyyy 'at' HH:mm", java.util.Locale.ENGLISH)
-                    .withZone(ZoneId.of("Europe/Amsterdam"));
+    private static final DateTimeFormatter DATE_PATTERN =
+            DateTimeFormatter.ofPattern("EEEE, MMMM d yyyy 'at' HH:mm", java.util.Locale.ENGLISH);
 
     private ProviderMessage buildMessage(AppointmentEntity appointment, ProviderType providerType,
             NotificationType type, UUID messageId) {
 
+        // Tijdzone opzoeken per organisatie (configureerbaar via application.properties)
+        ZoneId zone = timezoneMapper.resolveTimezone(appointment.getOrganizationId());
         String dateTime = appointment.getStart() != null
-                ? DATE_FORMATTER.format(appointment.getStart())
+                ? DATE_PATTERN.withZone(zone).format(appointment.getStart())
                 : "unknown";
 
         String location = (appointment.getLocation() != null && !appointment.getLocation().isBlank())
@@ -230,10 +231,8 @@ public class NotificationService {
 
         String smsText = content.toString();
 
-        log.info("=== SMS CONTENT FOR NOTIFICATION {} ===\nTo: {}\n{}\n======",
-                appointment.getAppointmentId(),
-                appointment.getPatientPhoneNumber(),
-                smsText);
+        // NFR 5: geen patiëntgegevens of berichteninhoud in logs (AVG/GDPR)
+        log.info("SMS gebouwd voor afspraak {} via provider {}", appointment.getAppointmentId(), providerType);
 
         return new ProviderMessage(providerType, appointment.getPatientPhoneNumber(),
                 smsText, "Appointment reminder", messageId);

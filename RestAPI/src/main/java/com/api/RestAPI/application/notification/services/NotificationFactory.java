@@ -15,12 +15,11 @@ import com.api.RestAPI.domain.notification.enums.NotificationType;
 @Component
 public class NotificationFactory implements IAppointmentFactory {
     
-    public List<Notification> createNotifications(String appointmentId, Instant appointmentStart)
-    
-    {
+    public List<Notification> createNotifications(String appointmentId, Instant appointmentStart, String organizationId) {
         Notification notification1 = new Notification(
             UUID.randomUUID(),
             appointmentId,
+            organizationId,
             NotificationType.REMINDER_24H,
             NotificationStatus.PENDING,
             appointmentStart.minus(24, ChronoUnit.HOURS),
@@ -33,6 +32,7 @@ public class NotificationFactory implements IAppointmentFactory {
         Notification notification2 = new Notification(
             UUID.randomUUID(),
             appointmentId,
+            organizationId,
             NotificationType.REMINDER_1H,
             NotificationStatus.PENDING,
             appointmentStart.minus(1, ChronoUnit.HOURS),

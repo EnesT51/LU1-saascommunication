@@ -14,8 +14,12 @@ public final class SaasCommunicationFactory {
 	}
 	
 	public static AppointmentPublishAdvice createAppointmentPublishAdvice() {
-		return new AppointmentPublishAdvice(createAppointmentMapper(), createAppointmentPublisher(),
-		        createFhirMessageValidator(), createMessageTracker());
+		return new AppointmentPublishAdvice(
+		    createAppointmentMapper(),
+		    createAppointmentPublisher(),
+		    createFhirMessageValidator(),
+		    createMessageTracker()
+		);
 	}
 	
 	public static AppointmentMapper createAppointmentMapper() {

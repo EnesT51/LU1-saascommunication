@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -77,6 +79,8 @@ class AppointmentServiceTest {
         testAppointmentEntity = new AppointmentEntity();
         testAppointmentEntity.setAppointmentId("appointment-123");
         testAppointmentEntity.setStatus(AppointmentStatus.BOOKED);
+        // Start in de toekomst zodat notificaties worden aangemaakt (Eis 1: geen notificaties voor reeds aangevangen afspraken)
+        testAppointmentEntity.setStart(Instant.now().plus(25, ChronoUnit.HOURS));
 
         testResponseDto = new AppointmentResponseDto();
     }
@@ -89,7 +93,7 @@ class AppointmentServiceTest {
         when(appointmentMapper.toEntity(testFhirAppointment)).thenReturn(testAppointmentEntity);
         when(appointmentRepository.findByAppointmentId("appointment-123")).thenReturn(Optional.empty());
         when(appointmentRepository.save(testAppointmentEntity)).thenReturn(testAppointmentEntity);
-        when(appointmentFactory.createNotifications(anyString(), any())).thenReturn(List.of());
+        when(appointmentFactory.createNotifications(anyString(), any(), any())).thenReturn(List.of());
         when(appointmentMapper.toDto(testAppointmentEntity)).thenReturn(testResponseDto);
 
         // Act
@@ -117,7 +121,7 @@ class AppointmentServiceTest {
         when(appointmentRepository.findByAppointmentId("appointment-123"))
                 .thenReturn(Optional.of(existingEntity));
         when(appointmentRepository.save(existingEntity)).thenReturn(existingEntity);
-        when(appointmentFactory.createNotifications(anyString(), any())).thenReturn(List.of());
+        when(appointmentFactory.createNotifications(anyString(), any(), any())).thenReturn(List.of());
         when(appointmentMapper.toDto(existingEntity)).thenReturn(testResponseDto);
 
         // Act
@@ -128,7 +132,8 @@ class AppointmentServiceTest {
         verify(fhirPayloadValidator).validate(testFhirJson);
         verify(officialFhirValidator).validate(testFhirJson);
         verify(appointmentRepository).save(existingEntity);
-        verify(notificationRepository).saveAll(anyList());
+        // Updates maken geen nieuwe notificaties aan — alleen creates doen dat
+        verify(notificationRepository, never()).saveAll(anyList());
         assertFalse(existingEntity.isNewlyCreated());
     }
 
@@ -205,7 +210,7 @@ class AppointmentServiceTest {
         when(appointmentMapper.toEntity(testFhirAppointment)).thenReturn(testAppointmentEntity);
         when(appointmentRepository.findByAppointmentId("appointment-123")).thenReturn(Optional.empty());
         when(appointmentRepository.save(testAppointmentEntity)).thenReturn(testAppointmentEntity);
-        when(appointmentFactory.createNotifications(anyString(), any())).thenReturn(List.of());
+        when(appointmentFactory.createNotifications(anyString(), any(), any())).thenReturn(List.of());
         when(appointmentMapper.toDto(testAppointmentEntity)).thenReturn(testResponseDto);
         doNothing().when(stateHandler).validateCreation(AppointmentStatus.BOOKED);
 
@@ -234,7 +239,7 @@ class AppointmentServiceTest {
         when(appointmentRepository.findByAppointmentId("appointment-123"))
                 .thenReturn(Optional.of(existingEntity));
         when(appointmentRepository.save(existingEntity)).thenReturn(existingEntity);
-        when(appointmentFactory.createNotifications(anyString(), any())).thenReturn(List.of());
+        when(appointmentFactory.createNotifications(anyString(), any(), any())).thenReturn(List.of());
         when(appointmentMapper.toDto(existingEntity)).thenReturn(testResponseDto);
         doNothing().when(stateHandler).validateTransition(AppointmentStatus.BOOKED, AppointmentStatus.CANCELLED);
 
@@ -262,7 +267,7 @@ class AppointmentServiceTest {
         when(appointmentRepository.findByAppointmentId("appointment-123"))
                 .thenReturn(Optional.of(existingEntity));
         when(appointmentRepository.save(existingEntity)).thenReturn(existingEntity);
-        when(appointmentFactory.createNotifications(anyString(), any())).thenReturn(List.of());
+        when(appointmentFactory.createNotifications(anyString(), any(), any())).thenReturn(List.of());
         when(appointmentMapper.toDto(existingEntity)).thenReturn(testResponseDto);
 
         // Act
@@ -282,7 +287,7 @@ class AppointmentServiceTest {
         when(appointmentMapper.toEntity(testFhirAppointment)).thenReturn(testAppointmentEntity);
         when(appointmentRepository.findByAppointmentId("appointment-123")).thenReturn(Optional.empty());
         when(appointmentRepository.save(testAppointmentEntity)).thenReturn(testAppointmentEntity);
-        when(appointmentFactory.createNotifications("appointment-123", testAppointmentEntity.getStart()))
+        when(appointmentFactory.createNotifications("appointment-123", testAppointmentEntity.getStart(), any()))
                 .thenReturn(mockNotifications);
         when(appointmentMapper.toDto(testAppointmentEntity)).thenReturn(testResponseDto);
 
@@ -290,8 +295,28 @@ class AppointmentServiceTest {
         appointmentService.processAppointmentEvent(testFhirJson);
 
         // Assert
-        verify(appointmentFactory).createNotifications("appointment-123", testAppointmentEntity.getStart());
+        verify(appointmentFactory).createNotifications(eq("appointment-123"), eq(testAppointmentEntity.getStart()), any());
         verify(notificationRepository).saveAll(mockNotifications);
+    }
+
+    @Test
+    @DisplayName("Should NOT create notifications for an appointment that has already started")
+    void testNoNotificationsForAlreadyStartedAppointment() {
+        // Arrange — stel start in het verleden in (afspraak is al begonnen)
+        testAppointmentEntity.setStart(Instant.now().minus(1, ChronoUnit.HOURS));
+
+        when(fhirParser.parseAppointment(testFhirJson)).thenReturn(testFhirAppointment);
+        when(appointmentMapper.toEntity(testFhirAppointment)).thenReturn(testAppointmentEntity);
+        when(appointmentRepository.findByAppointmentId("appointment-123")).thenReturn(Optional.empty());
+        when(appointmentRepository.save(testAppointmentEntity)).thenReturn(testAppointmentEntity);
+        when(appointmentMapper.toDto(testAppointmentEntity)).thenReturn(testResponseDto);
+
+        // Act
+        appointmentService.processAppointmentEvent(testFhirJson);
+
+        // Assert — geen notificaties aangemaakt voor reeds aangevangen afspraak (Eis 1)
+        verify(appointmentFactory, never()).createNotifications(any(), any(), any());
+        verify(notificationRepository, never()).saveAll(anyList());
     }
 
     @Test

@@ -24,6 +24,8 @@ public class Notification {
     @Column(nullable = false)
     private String appointmentId;
 
+    private String organizationId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private NotificationType type;
@@ -54,6 +56,7 @@ public class Notification {
     public Notification(
             UUID id,
             String appointmentId,
+            String organizationId,
             NotificationType type,
             NotificationStatus status,
             Instant scheduledAt,
@@ -61,10 +64,10 @@ public class Notification {
             int retryCount,
             String provider,
             String failureReason
-            
     ) {
         this.id = id;
         this.appointmentId = appointmentId;
+        this.organizationId = organizationId;
         this.type = type;
         this.status = status;
         this.scheduledAt = scheduledAt;
@@ -72,7 +75,6 @@ public class Notification {
         this.retryCount = retryCount;
         this.provider = provider;
         this.failureReason = failureReason;
-        
     }
     @PrePersist
     public void prePersist() {
@@ -85,6 +87,10 @@ public class Notification {
 
     public String getAppointmentId() {
         return appointmentId;
+    }
+
+    public String getOrganizationId() {
+        return organizationId;
     }
 
     public NotificationType getType() {
@@ -129,5 +135,13 @@ public class Notification {
 
     public void resetToPending() {
         this.status = NotificationStatus.PENDING;
+    }
+
+    public void markAsCancelled() {
+        this.status = NotificationStatus.CANCELLED;
+    }
+
+    public void reschedule(Instant newScheduledAt) {
+        this.scheduledAt = newScheduledAt;
     }
 }
