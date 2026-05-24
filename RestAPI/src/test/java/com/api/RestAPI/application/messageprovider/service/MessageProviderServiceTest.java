@@ -24,6 +24,10 @@ class MessageProviderServiceTest {
         // Arrange
         MessageQueuePublisher publisher = mock(MessageQueuePublisher.class);
         ProviderMessageJpaRepository repository = mock(ProviderMessageJpaRepository.class);
+        MessageProviderService service = new MessageProviderService(publisher, repository);
+        ProviderMessage message = new ProviderMessage(ProviderType.SWIFTSEND, "recipient", "content", "subject");
+        when(repository.save(org.mockito.ArgumentMatchers.any(ProviderMessageEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         ProviderMessageEntity savedEntity = new ProviderMessageEntity(
                 ProviderType.SWIFTSEND, "recipient", "content", "subject", MessageStatus.QUEUED);
@@ -37,8 +41,12 @@ class MessageProviderServiceTest {
         // Act
         service.queueMessage(message);
 
-        // Assert
-        verify(repository).save(any());
-        verify(publisher).publish(any(ProviderMessage.class));
+        verify(repository).save(org.mockito.ArgumentMatchers.any(ProviderMessageEntity.class));
+        verify(publisher).publish(org.mockito.ArgumentMatchers.argThat(published ->
+                published.getProviderType() == ProviderType.SWIFTSEND
+                        && "recipient".equals(published.getRecipient())
+                        && "content".equals(published.getContent())
+                        && "subject".equals(published.getSubject())
+        ));
     }
 }

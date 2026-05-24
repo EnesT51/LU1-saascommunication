@@ -33,14 +33,15 @@ class ProviderDispatcherTest {
         when(swiftSend.supports()).thenReturn(ProviderType.SWIFTSEND);
         when(securePost.supports()).thenReturn(ProviderType.SECUREPOST);
         when(securePost.send(message)).thenReturn(ProviderSendResult.success("tracking-123"));
+        ProviderMessageStatusService statusService = mock(ProviderMessageStatusService.class);
 
-        // Act
         ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend, securePost), statusService);
         dispatcher.dispatch(message);
 
         // Assert
         verify(securePost).send(message);
         verify(swiftSend, never()).send(message);
+        verify(statusService).markAsSent(message.getId(), "tracking-123");
     }
 
     @Test
@@ -52,6 +53,7 @@ class ProviderDispatcherTest {
 
         ProviderMessage message = new ProviderMessage(ProviderType.ASYNCFLOW, "recipient", "content", "subject", UUID.randomUUID());
         when(swiftSend.supports()).thenReturn(ProviderType.SWIFTSEND);
+        ProviderMessageStatusService statusService = mock(ProviderMessageStatusService.class);
 
         ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend), statusService);
 

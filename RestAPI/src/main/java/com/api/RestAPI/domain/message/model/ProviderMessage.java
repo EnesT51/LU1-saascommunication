@@ -15,6 +15,15 @@ public class ProviderMessage {
             ProviderType providerType,
             String recipient,
             String content,
+            String subject
+    ) {
+        this(providerType, recipient, content, subject, null);
+    }
+
+    public ProviderMessage(
+            ProviderType providerType,
+            String recipient,
+            String content,
             String subject,
             UUID id
     ) {
