@@ -10,5 +10,6 @@ public interface INotificationRepository {
     void save(Notification notification);
     void saveAll(List<Notification> notifications);
     List<Notification> findPendingNotifications(NotificationStatus status, Instant now);
+    List<Notification> findFailedNotifications(NotificationStatus status, int maxRetries);
     long deleteByCreatedAtBefore(Instant cutoffDate);
 }

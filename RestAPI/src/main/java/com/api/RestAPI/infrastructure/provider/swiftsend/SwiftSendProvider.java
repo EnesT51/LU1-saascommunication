@@ -3,6 +3,7 @@ package com.api.RestAPI.infrastructure.provider.swiftsend;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageProvider;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
+import com.api.RestAPI.domain.message.model.ProviderSendResult;
 import com.api.RestAPI.infrastructure.provider.swiftsend.dto.SwiftSendRequest;
 import com.api.RestAPI.infrastructure.provider.swiftsend.dto.SwiftSendResponse;
 
@@ -33,7 +34,7 @@ public class SwiftSendProvider implements MessageProvider {
     }
 
     @Override
-    public void send(ProviderMessage message) {
+    public ProviderSendResult send(ProviderMessage message) {
         SwiftSendRequest request = new SwiftSendRequest(
                 "SMS",
                 Arrays.asList(message.getRecipient()),
@@ -58,13 +59,30 @@ public class SwiftSendProvider implements MessageProvider {
 
             if (body != null && body.isSuccess()) {
                 logger.info("SwiftSend message sent successfully. MessageId={}", body.getMessageId());
-            } else {
-                logger.warn("SwiftSend failed. Error={}", body != null ? body.getError() : "No response body");
+                return ProviderSendResult.success(body.getMessageId());
             }
 
+            String error = body != null ? body.getError() : "No response body";
+            logger.warn("SwiftSend failed. Error={}", error);
+            return ProviderSendResult.failed(error);
+
         } catch (Exception ex) {
-            logger.error("SwiftSend request failed: {}", ex.getMessage());
-            throw ex;
+
+            String errorMessage = ex.getMessage();
+
+            logger.error("SwiftSend request failed: {}", errorMessage);
+
+            if (
+                    errorMessage != null &&
+                    (
+                            errorMessage.contains("401") ||
+                            errorMessage.contains("403")
+                    )
+            ) {
+                return ProviderSendResult.failed(errorMessage);
+            }
+
+            return ProviderSendResult.retryableFailure(errorMessage);
         }
     }
 }

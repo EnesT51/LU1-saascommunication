@@ -15,6 +15,7 @@ public class AppointmentResponseDto {
     private String location;
     private String locationId;
     private String patientPhoneNumber;
+    private String organizationId;
     private String status;
     private boolean newlyCreated;
     private Instant start;
@@ -72,6 +73,12 @@ public class AppointmentResponseDto {
     public void setPatientPhoneNumber(String patientPhoneNumber) {
         this.patientPhoneNumber = patientPhoneNumber;
     }
+    public String getOrganizationId() {
+        return organizationId;
+    }
+    public void setOrganizationId(String organizationId) {
+        this.organizationId = organizationId;
+    }
     public void setStart(Instant start) {
         this.start = start;
     }
@@ -116,6 +123,7 @@ public class AppointmentResponseDto {
         this.location = dto.getLocation();
         this.locationId = dto.getLocationId();
         this.patientPhoneNumber = dto.getPatientPhoneNumber();
+        this.organizationId = dto.getOrganizationId();
         this.status = dto.getStatus().toString();
         this.start = dto.getStart();
         this.end = dto.getEnd();

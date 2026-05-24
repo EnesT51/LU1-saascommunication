@@ -18,6 +18,26 @@ receivers:
           static_configs:
             - targets: ["127.0.0.1:8888"]
 
+  # RabbitMQ queue metrics via json-exporter (queue depth, DLQ berichten)
+  prometheus/rabbitmq:
+    config:
+      scrape_configs:
+        - job_name: "rabbitmq"
+          scrape_interval: 15s
+          metrics_path: /probe
+          params:
+            module: [rabbitmq]
+          static_configs:
+            - targets:
+                - 'http://rabbitmq:15672/api/queues'
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_target
+            - source_labels: [__param_target]
+              target_label: instance
+            - target_label: __address__
+              replacement: json-exporter:7979
+
   # ActiveMQ queue metrics via json-exporter (queue depth, enqueued, dequeued)
   prometheus/activemq:
     config:
@@ -72,7 +92,7 @@ service:
       processors: [batch]
       exporters: [otlp_http/traces]
     metrics:
-      receivers: [otlp, prometheus/collector, prometheus/activemq]
+      receivers: [otlp, prometheus/collector, prometheus/activemq, prometheus/rabbitmq]
       processors: [batch]
       exporters: [otlp_http/metrics]
     logs:

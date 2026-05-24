@@ -3,6 +3,7 @@ package com.api.RestAPI.infrastructure.provider.legacylink;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageProvider;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
+import com.api.RestAPI.domain.message.model.ProviderSendResult;
 import com.api.RestAPI.infrastructure.provider.legacylink.dto.LegacyLinkResponse;
 
 import org.slf4j.Logger;
@@ -30,14 +31,14 @@ public class LegacyLinkProvider implements MessageProvider {
     }
 
     @Override
-    public void send(ProviderMessage message) {
+    public ProviderSendResult send(ProviderMessage message) {
         String xmlBody = String.format(
                 "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
-                "<SendSmsRequest xmlns=\"http://legacylink.fakecomworld.com/v1\">" +
-                "<PhoneNumber>%s</PhoneNumber>" +
-                "<MessageText>%s</MessageText>" +
-                "<SenderIdentification>%s</SenderIdentification>" +
-                "</SendSmsRequest>",
+                        "<SendSmsRequest xmlns=\"http://legacylink.fakecomworld.com/v1\">" +
+                        "<PhoneNumber>%s</PhoneNumber>" +
+                        "<MessageText>%s</MessageText>" +
+                        "<SenderIdentification>%s</SenderIdentification>" +
+                        "</SendSmsRequest>",
                 message.getRecipient(),
                 message.getContent(),
                 properties.getSender()
@@ -62,13 +63,30 @@ public class LegacyLinkProvider implements MessageProvider {
 
             if (body != null && body.getStatusCode() == 200) {
                 logger.info("LegacyLink SMS sent successfully. MessageReference={}", body.getMessageReference());
-            } else {
-                logger.warn("LegacyLink failed. StatusMessage={}", body != null ? body.getStatusMessage() : "No response body");
+                return ProviderSendResult.success(body.getMessageReference());
             }
 
+            String error = body != null ? body.getStatusMessage() : "No response body";
+            logger.warn("LegacyLink failed. StatusMessage={}", error);
+            return ProviderSendResult.failed(error);
+
         } catch (Exception ex) {
-            logger.error("LegacyLink request failed: {}", ex.getMessage());
-            throw ex;
+
+            String errorMessage = ex.getMessage();
+
+            logger.error("LegacyLink request failed: {}", errorMessage);
+
+            if (
+                    errorMessage != null &&
+                    (
+                            errorMessage.contains("401") ||
+                            errorMessage.contains("403")
+                    )
+            ) {
+                return ProviderSendResult.failed(errorMessage);
+            }
+
+            return ProviderSendResult.retryableFailure(errorMessage);
         }
     }
 }

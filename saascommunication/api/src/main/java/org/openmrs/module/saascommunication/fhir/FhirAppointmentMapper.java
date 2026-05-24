@@ -20,6 +20,7 @@ import java.util.TimeZone;
 import org.openmrs.Location;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
+import org.openmrs.api.context.Context;
 
 public class FhirAppointmentMapper implements AppointmentMapper {
 	
@@ -101,20 +102,48 @@ public class FhirAppointmentMapper implements AppointmentMapper {
 	}
 	
 	private void appendPatientContactExtensions(StringBuilder json, Object appointment) {
+		// Haal telefoonnummer op — alleen mogelijk als er een patiënt is
 		Patient patient = invokePatient(appointment, "getPatient");
-		if (patient == null) {
-			return;
-		}
+		String phone = patient != null ? getPersonAttribute(patient, "Phone Number", "Telephone Number", "Mobile Number")
+		        : null;
 		
-		String phone = getPersonAttribute(patient, "Phone Number", "Telephone Number", "Mobile Number");
+		// OrganisatieId en providerType komen altijd mee, ongeacht of er een patiënt is
+		String organizationId = getGlobalProperty("saascommunication.organizationId");
 		
-		if (isBlank(phone)) {
+		// Geen enkele extensie beschikbaar — niets toevoegen
+		if (isBlank(phone) && isBlank(organizationId)) {
 			return;
 		}
 		
 		json.append("\"extension\":[");
-		json.append("{\"url\":\"patientPhone\",\"valueString\":\"").append(escape(phone)).append("\"}");
+		boolean hasEntry = false;
+		
+		if (!isBlank(phone)) {
+			json.append(
+			    "{\"url\":\"http://saascommunication.openmrs.org/fhir/StructureDefinition/patientPhone\",\"valueString\":\"")
+			        .append(escape(phone)).append("\"}");
+			hasEntry = true;
+		}
+		
+		if (!isBlank(organizationId)) {
+			if (hasEntry) {
+				json.append(",");
+			}
+			json.append(
+			    "{\"url\":\"http://saascommunication.openmrs.org/fhir/StructureDefinition/organizationId\",\"valueString\":\"")
+			        .append(escape(organizationId)).append("\"}");
+		}
+		
 		json.append("],");
+	}
+	
+	private String getGlobalProperty(String property) {
+		try {
+			return Context.getAdministrationService().getGlobalProperty(property);
+		}
+		catch (Exception e) {
+			return null;
+		}
 	}
 	
 	private String getPersonAttribute(Patient patient, String... attributeTypeNames) {

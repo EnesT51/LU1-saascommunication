@@ -1,24 +1,15 @@
 package com.api.RestAPI.infrastructure.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import com.api.RestAPI.infrastructure.security.ApiKeyAuthenticationFilter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 public class SecurityConfig {
-
-
-    @Value("${security.user.password}")
-    private String password;
 
     private final ApiKeyAuthenticationFilter apiKeyFilter;
 
@@ -44,6 +35,7 @@ public class SecurityConfig {
                     "/actuator/health",
                     "/api/message-provider/**"
                 ).permitAll()
+                .requestMatchers("/api/message-provider/**").hasRole("API")
                 .anyRequest().authenticated()
             )
             .httpBasic(httpBasic -> httpBasic.disable())
@@ -55,13 +47,4 @@ public class SecurityConfig {
             );
         return http.build();
     }
-    @Bean
-    public UserDetailsService userDetailsService() {
-        UserDetails user = User.builder()
-                .username("user")
-                .password(this.password)
-                .build();
-        return new InMemoryUserDetailsManager(user);
-    }
-    
 }

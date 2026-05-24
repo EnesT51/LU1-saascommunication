@@ -112,22 +112,36 @@ public class AppointmentMapper implements IAppointmentMapper {
                     break;
             }
         }
-        extractPhoneNumber(appointmentEntity, appointment);
+        extractExtensions(appointmentEntity, appointment);
     }
-    private void extractPhoneNumber(AppointmentEntity appointmentEntity, Appointment appointment) {
+
+    private void extractExtensions(AppointmentEntity appointmentEntity, Appointment appointment) {
 
         for (Extension extension : appointment.getExtension()) {
 
-            if (isPatientPhoneExtension(extension)
+            String url = extension.getUrl();
+
+            if (url == null) {
+                continue;
+            }
+
+            if (isPatientPhoneExtension(url)
                     && extension.getValue() instanceof StringType stringType) {
 
                 appointmentEntity.setPatientPhoneNumber(stringType.getValue());
             }
+
+            if ("http://saascommunication.openmrs.org/fhir/StructureDefinition/organizationId".equals(url)
+                    && extension.getValue() instanceof StringType stringType) {
+
+                appointmentEntity.setOrganizationId(stringType.getValue());
+            }
         }
     }
 
-    private boolean isPatientPhoneExtension(Extension extension) {
-        return PATIENT_PHONE_EXTENSION_URL.equals(extension.getUrl())
-                || "patientPhone".equals(extension.getUrl());
+    private boolean isPatientPhoneExtension(String url) {
+        return PATIENT_PHONE_EXTENSION_URL.equals(url)
+                || "patientPhone".equals(url)
+                || "http://saascommunication.openmrs.org/fhir/StructureDefinition/patientPhone".equals(url);
     }
 }

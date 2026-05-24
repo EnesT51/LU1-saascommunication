@@ -32,9 +32,14 @@ public class NotificationRepositoryImpl implements INotificationRepository {
     public List<Notification> findPendingNotifications(NotificationStatus status, Instant now) {
         return jpaNotificationRepository.findByStatusAndScheduledAtBefore(status, now);
     }
+
+    @Override
+    public List<Notification> findFailedNotifications(NotificationStatus status, int maxRetries) {
+        return jpaNotificationRepository.findByStatusAndRetryCountLessThan(status, maxRetries);
+    }
+
     @Override
     public long deleteByCreatedAtBefore(Instant cutoffDate) {
         return jpaNotificationRepository.deleteByCreatedAtBefore(cutoffDate);
     }
-
 }

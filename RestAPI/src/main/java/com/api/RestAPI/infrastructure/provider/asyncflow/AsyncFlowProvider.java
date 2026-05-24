@@ -3,6 +3,7 @@ package com.api.RestAPI.infrastructure.provider.asyncflow;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageProvider;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
+import com.api.RestAPI.domain.message.model.ProviderSendResult;
 import com.api.RestAPI.infrastructure.provider.asyncflow.dto.AsyncFlowRequest;
 import com.api.RestAPI.infrastructure.provider.asyncflow.dto.AsyncFlowResponse;
 
@@ -31,7 +32,7 @@ public class AsyncFlowProvider implements MessageProvider {
     }
 
     @Override
-    public void send(ProviderMessage message) {
+    public ProviderSendResult send(ProviderMessage message) {
         AsyncFlowRequest request = new AsyncFlowRequest(
                 message.getRecipient(),
                 message.getContent(),
@@ -56,13 +57,30 @@ public class AsyncFlowProvider implements MessageProvider {
 
             if (body != null && body.isAccepted()) {
                 logger.info("AsyncFlow message accepted. TrackingId={}", body.getTrackingId());
-            } else {
-                logger.warn("AsyncFlow failed. Message={}", body != null ? body.getMessage() : "No response body");
+                return ProviderSendResult.success(body.getTrackingId());
             }
 
+            String error = body != null ? body.getMessage() : "No response body";
+            logger.warn("AsyncFlow failed. Message={}", error);
+            return ProviderSendResult.failed(error);
+
         } catch (Exception ex) {
-            logger.error("AsyncFlow request failed: {}", ex.getMessage());
-            throw ex;
+            String errorMessage = ex.getMessage();
+
+            logger.error("AsyncFlow request failed: {}", errorMessage);
+
+            if (
+                    errorMessage != null &&
+                    (
+                            errorMessage.contains("401") ||
+                            errorMessage.contains("403") ||
+                            errorMessage.contains("400")
+                    )
+            ) {
+                return ProviderSendResult.failed(errorMessage);
+            }
+
+            return ProviderSendResult.retryableFailure(errorMessage);
         }
     }
 }
