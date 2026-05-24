@@ -1,5 +1,6 @@
 package com.api.RestAPI.infrastructure.rabbitmq.publisher;
 
+import com.api.RestAPI.domain.message.interfaces.DeadLetterMessageQueuePublisher;
 import com.api.RestAPI.domain.message.interfaces.MessageQueuePublisher;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
 import com.api.RestAPI.infrastructure.rabbitmq.config.RabbitMQConfig;
@@ -7,7 +8,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
-public class RabbitMQMessageQueuePublisher implements MessageQueuePublisher {
+public class RabbitMQMessageQueuePublisher implements MessageQueuePublisher, DeadLetterMessageQueuePublisher {
 
     private final RabbitTemplate rabbitTemplate;
 
@@ -26,6 +27,7 @@ public class RabbitMQMessageQueuePublisher implements MessageQueuePublisher {
         );
     }
 
+    @Override
     public void publishToDlq(ProviderMessage message) {
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.NOTIFICATIONS_DLQ,
