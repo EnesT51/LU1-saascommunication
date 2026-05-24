@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.ArrayList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +32,6 @@ public class NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
     private static final int MAX_RETRIES = 3;
-    private static final int FALLBACK_ATTEMPTS = 1;
 
     private final INotificationRepository notificationRepository;
     private final IAppointmentRepository appointmentRepository;
@@ -94,13 +94,17 @@ public class NotificationService {
         boolean sent = tryPublish(notification, appointment, primary, messageId, MAX_RETRIES);
 
         if (!sent) {
-            ProviderType fallback = providerMapper.resolveFallback(primary);
-            log.warn("Primaire provider {} mislukt, probeer fallback {}", primary, fallback);
-            sent = tryPublish(notification, appointment, fallback, messageId, FALLBACK_ATTEMPTS);
+            List<ProviderType> fallbacks = providerMapper.resolveFallbacks(primary);
+            for (ProviderType fallback : fallbacks) {
+                log.warn("Provider {} mislukt, probeer fallback {}", primary, fallback);
+                sent = tryPublish(notification, appointment, fallback, messageId, MAX_RETRIES);
+                if (sent) break;
+            }
         }
 
         if (!sent) {
-            log.error("Notificatie {} permanent mislukt na primary + fallback", notification.getId());
+            log.error("Notificatie {} permanent mislukt na alle {} providers",
+                    notification.getId(), ProviderType.values().length);
             recordFailed(primary.name(), "alle_providers_mislukt");
         }
     }

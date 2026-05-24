@@ -6,8 +6,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -42,21 +44,24 @@ public class OrganizationProviderMapper {
     }
 
     /**
-     * Geeft de fallback provider — altijd een andere dan de primaire.
-     * Kiest de eerste beschikbare ProviderType die niet gelijk is aan primary.
+     * Returns all fallback providers in order, excluding the primary.
+     * Configured fallback goes first, then the remaining providers.
+     * Example: primary=SWIFTSEND, fallback=LEGACYLINK
+     *   → [LEGACYLINK, ASYNCFLOW, SECUREPOST]
      */
-    public ProviderType resolveFallback(ProviderType primary) {
-        ProviderType configured = parseProviderType(fallback, null);
+    public List<ProviderType> resolveFallbacks(ProviderType primary) {
+        List<ProviderType> result = new ArrayList<>();
 
+        ProviderType configured = parseProviderType(fallback, null);
         if (configured != null && configured != primary) {
-            return configured;
+            result.add(configured);
         }
 
-        // Kies de eerste ProviderType die niet gelijk is aan primary
-        return Arrays.stream(ProviderType.values())
-                .filter(p -> p != primary)
-                .findFirst()
-                .orElse(primary);
+        Arrays.stream(ProviderType.values())
+                .filter(p -> p != primary && !result.contains(p))
+                .forEach(result::add);
+
+        return result;
     }
 
     /**
