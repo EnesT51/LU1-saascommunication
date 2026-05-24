@@ -1,6 +1,8 @@
 package com.api.RestAPI.application.notification.services;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -155,15 +157,47 @@ public class NotificationService {
                 .increment();
     }
 
+    private static final DateTimeFormatter DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("EEEE, MMMM d yyyy 'at' HH:mm", java.util.Locale.ENGLISH)
+                    .withZone(ZoneId.of("Europe/Amsterdam"));
+
     private ProviderMessage buildMessage(AppointmentEntity appointment, ProviderType providerType,
             NotificationType type, UUID messageId) {
-        String tijdLabel = type == NotificationType.REMINDER_24H ? "24 uur" : "1 uur";
-        String content = String.format(
-                "Beste patient, u heeft over %s een afspraak. Afspraak ID: %s.",
-                tijdLabel, appointment.getAppointmentId());
+
+        String dateTime = appointment.getStart() != null
+                ? DATE_FORMATTER.format(appointment.getStart())
+                : "unknown";
+
+        String location = (appointment.getLocation() != null && !appointment.getLocation().isBlank())
+                ? appointment.getLocation()
+                : "see your appointment confirmation";
+
+        StringBuilder content = new StringBuilder();
+
+        if (type == NotificationType.REMINDER_24H) {
+            content.append("Reminder: you have an appointment tomorrow.\n\n");
+        } else {
+            content.append("Reminder: you have an appointment in 1 hour.\n\n");
+        }
+
+        content.append("Date & time  : ").append(dateTime).append("\n");
+        content.append("Location     : ").append(location).append("\n");
+
+        if (appointment.getComment() != null && !appointment.getComment().isBlank()) {
+            content.append("Instructions : ").append(appointment.getComment()).append("\n");
+        }
+
+        content.append("\nAppointment ID: ").append(appointment.getAppointmentId());
+
+        String smsText = content.toString();
+
+        log.info("=== SMS CONTENT FOR NOTIFICATION {} ===\nTo: {}\n{}\n======",
+                appointment.getAppointmentId(),
+                appointment.getPatientPhoneNumber(),
+                smsText);
 
         return new ProviderMessage(providerType, appointment.getPatientPhoneNumber(),
-                content, "Afspraak herinnering", messageId);
+                smsText, "Appointment reminder", messageId);
     }
 
     private void sleepWithBackoff(int attempt) {
