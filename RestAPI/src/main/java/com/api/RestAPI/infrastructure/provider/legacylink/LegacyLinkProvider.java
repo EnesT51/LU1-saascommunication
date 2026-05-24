@@ -74,7 +74,7 @@ public class LegacyLinkProvider implements MessageProvider {
 
             String errorMessage = ex.getMessage();
 
-            logger.error("SwiftSend request failed: {}", errorMessage);
+            logger.error("LegacyLink request failed: {}", errorMessage);
 
             if (
                     errorMessage != null &&
