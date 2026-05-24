@@ -1,4 +1,4 @@
-package com.api.RestAPI.infrastructure.notification.Repository;
+package com.api.RestAPI.infrastructure.notification.persistence;
 
 import java.time.Instant;
 import java.util.List;
@@ -16,4 +16,5 @@ public interface JpaNotificationRepository extends JpaRepository<Notification, U
     List<Notification> findByStatusAndScheduledAtBefore(NotificationStatus status, Instant now);
 
     List<Notification> findByStatusAndRetryCountLessThan(NotificationStatus status, int maxRetries);
+    long deleteByCreatedAtBefore(Instant cutoffDate);
 }

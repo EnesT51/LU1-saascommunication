@@ -26,12 +26,14 @@ public class AppointmentStateHandler implements IAppointmentStateHandler {
     }
 
     public void validateTransition(@Nullable AppointmentStatus currentStatus, AppointmentStatus newStatus) {
+        if (currentStatus == null) {
+            validateCreation(newStatus);
+            return;
+        }
+
         Set<AppointmentStatus> allowed = transitions.get(currentStatus);
         if (allowed == null || !allowed.contains(newStatus)) {
-            // Nieuwe afspraak
-            if (!ALLOWED_CREATION_STATUSES.contains(newStatus)) {
-                throw new InvalidStatusTransitionException(currentStatus, newStatus);
-            }
+            throw new InvalidStatusTransitionException(currentStatus, newStatus);
         }
     }
     public void validateCreation(AppointmentStatus newStatus) {

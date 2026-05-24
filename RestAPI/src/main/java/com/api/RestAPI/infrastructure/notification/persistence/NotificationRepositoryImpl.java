@@ -1,4 +1,4 @@
-package com.api.RestAPI.infrastructure.notification.Repository;
+package com.api.RestAPI.infrastructure.notification.persistence;
 
 import java.time.Instant;
 import java.util.List;
@@ -37,5 +37,9 @@ public class NotificationRepositoryImpl implements INotificationRepository {
     public List<Notification> findFailedNotifications(NotificationStatus status, int maxRetries) {
         return jpaNotificationRepository.findByStatusAndRetryCountLessThan(status, maxRetries);
     }
-    
+
+    @Override
+    public long deleteByCreatedAtBefore(Instant cutoffDate) {
+        return jpaNotificationRepository.deleteByCreatedAtBefore(cutoffDate);
+    }
 }

@@ -6,6 +6,7 @@ import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
 
 import com.api.RestAPI.application.appointment.interfaces.IAppointmentEventProcessor;
+import com.api.RestAPI.application.globalexceptions.InvalidFhirJsonException;
 import com.api.RestAPI.application.notification.AppointmentEventStore;
 
 @Component
@@ -27,6 +28,8 @@ public class AppointmentEventListener {
             eventStore.store(payload);
             appointmentEventProcessor.processAppointmentEvent(payload);
             log.info("Received and processed appointment event from ActiveMQ");
+        } catch (InvalidFhirJsonException e) {
+            log.warn("Rejected invalid appointment event from ActiveMQ: {}", e.getMessage());
         } catch (Exception e) {
             log.error("Failed to process appointment event from ActiveMQ: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to process appointment event", e);

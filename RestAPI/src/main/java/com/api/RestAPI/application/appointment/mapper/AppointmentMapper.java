@@ -17,6 +17,9 @@ import com.api.RestAPI.infrastructure.appointment.persistence.entities.Appointme
 @Component
 public class AppointmentMapper implements IAppointmentMapper {
 
+    public static final String PATIENT_PHONE_EXTENSION_URL =
+            "https://lu1-saascommunication.nl/fhir/StructureDefinition/patient-phone";
+
     public AppointmentEntity toEntity(Appointment appointment) {
         if (appointment == null) {
             throw new MappingException("Appointment mag niet null zijn");
@@ -28,7 +31,6 @@ public class AppointmentMapper implements IAppointmentMapper {
         appointmentEntity.setEnd(appointment.getEnd().toInstant());
         appointmentEntity.setDescription(appointment.getDescription());
         appointmentEntity.setComment(appointment.getComment());
-        appointmentEntity.prePersist();
 
         if (appointment.hasStatus()) { appointmentEntity.setStatus(mapStatus(appointment.getStatus())); }
 
@@ -123,7 +125,7 @@ public class AppointmentMapper implements IAppointmentMapper {
                 continue;
             }
 
-            if ("http://saascommunication.openmrs.org/fhir/StructureDefinition/patientPhone".equals(url)
+            if (isPatientPhoneExtension(url)
                     && extension.getValue() instanceof StringType stringType) {
 
                 appointmentEntity.setPatientPhoneNumber(stringType.getValue());
@@ -135,5 +137,11 @@ public class AppointmentMapper implements IAppointmentMapper {
                 appointmentEntity.setOrganizationId(stringType.getValue());
             }
         }
+    }
+
+    private boolean isPatientPhoneExtension(String url) {
+        return PATIENT_PHONE_EXTENSION_URL.equals(url)
+                || "patientPhone".equals(url)
+                || "http://saascommunication.openmrs.org/fhir/StructureDefinition/patientPhone".equals(url);
     }
 }
