@@ -26,6 +26,13 @@ public class RabbitMQMessageQueuePublisher implements MessageQueuePublisher {
         );
     }
 
+    public void publishToDlq(ProviderMessage message) {
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.NOTIFICATIONS_DLQ,
+                message
+        );
+    }
+
     private String getRoutingKey(ProviderMessage message) {
         return switch (message.getProviderType()) {
             case SWIFTSEND -> RabbitMQConfig.SWIFTSEND_ROUTING_KEY;

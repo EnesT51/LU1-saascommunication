@@ -14,4 +14,6 @@ import com.api.RestAPI.domain.notification.enums.NotificationStatus;
 public interface JpaNotificationRepository extends JpaRepository<Notification, UUID> {
 
     List<Notification> findByStatusAndScheduledAtBefore(NotificationStatus status, Instant now);
+
+    List<Notification> findByStatusAndRetryCountLessThan(NotificationStatus status, int maxRetries);
 }

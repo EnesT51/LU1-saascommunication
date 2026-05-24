@@ -22,6 +22,7 @@ public class RabbitMQConfig {
     public static final String ASYNCFLOW_QUEUE = "asyncflow.queue";
 
     public static final String PROVIDER_DLX = "provider.dlx";
+    public static final String NOTIFICATIONS_DLQ = "notifications.dlq";
     public static final String SWIFTSEND_DLQ = "swiftsend.dlq";
     public static final String SECUREPOST_DLQ = "securepost.dlq";
     public static final String LEGACYLINK_DLQ = "legacylink.dlq";
@@ -119,6 +120,11 @@ public class RabbitMQConfig {
                 .to(messageExchange())
                 .with(ASYNCFLOW_ROUTING_KEY);
     }
+    @Bean
+    public Queue notificationsDlq() {
+        return QueueBuilder.durable(NOTIFICATIONS_DLQ).build();
+    }
+
     @Bean
     public Queue swiftsendDlq() {
         return QueueBuilder.durable(SWIFTSEND_DLQ).build();

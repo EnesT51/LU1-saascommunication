@@ -18,6 +18,7 @@ import com.api.RestAPI.application.notification.interfaces.INotificationReposito
 import com.api.RestAPI.domain.appointment.Interface.IAppointmentRepository;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageQueuePublisher;
+import com.api.RestAPI.infrastructure.rabbitmq.publisher.RabbitMQMessageQueuePublisher;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
 import com.api.RestAPI.domain.notification.enums.NotificationStatus;
 import com.api.RestAPI.domain.notification.enums.NotificationType;
@@ -32,11 +33,13 @@ public class NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
     private static final int MAX_RETRIES = 3;
+    private static final int MAX_SCHEDULE_RETRIES = 3;
 
     private final INotificationRepository notificationRepository;
     private final IAppointmentRepository appointmentRepository;
     private final OrganizationProviderMapper providerMapper;
     private final MessageQueuePublisher messageQueuePublisher;
+    private final RabbitMQMessageQueuePublisher rabbitPublisher;
     private final MeterRegistry meterRegistry;
 
     public NotificationService(
@@ -44,12 +47,35 @@ public class NotificationService {
             IAppointmentRepository appointmentRepository,
             OrganizationProviderMapper providerMapper,
             MessageQueuePublisher messageQueuePublisher,
+            RabbitMQMessageQueuePublisher rabbitPublisher,
             MeterRegistry meterRegistry) {
         this.notificationRepository = notificationRepository;
         this.appointmentRepository = appointmentRepository;
         this.providerMapper = providerMapper;
         this.messageQueuePublisher = messageQueuePublisher;
+        this.rabbitPublisher = rabbitPublisher;
         this.meterRegistry = meterRegistry;
+    }
+
+    // Every 30 minutes: reset FAILED notifications (retry_count < 3) back to PENDING
+    @Scheduled(fixedRate = 1800000)
+    public void retryFailedNotifications() {
+        try {
+            List<Notification> failed = notificationRepository
+                    .findFailedNotifications(NotificationStatus.FAILED, MAX_SCHEDULE_RETRIES);
+
+            if (failed.isEmpty()) return;
+
+            log.info("Retrying {} failed notification(s)", failed.size());
+            for (Notification notification : failed) {
+                log.warn("Resetting FAILED notification {} (attempt {}/{}) back to PENDING",
+                        notification.getId(), notification.getRetryCount() + 1, MAX_SCHEDULE_RETRIES);
+                notification.resetToPending();
+                notificationRepository.save(notification);
+            }
+        } catch (Exception e) {
+            log.error("Error during failed notification retry: {}", e.getMessage());
+        }
     }
 
     @Scheduled(fixedRate = 5000)
@@ -103,9 +129,18 @@ public class NotificationService {
         }
 
         if (!sent) {
-            log.error("Notificatie {} permanent mislukt na alle {} providers",
+            log.error("Notificatie {} permanent mislukt na alle {} providers — naar DLQ",
                     notification.getId(), ProviderType.values().length);
             recordFailed(primary.name(), "alle_providers_mislukt");
+
+            // Publish to DLQ for manual inspection / replay
+            try {
+                ProviderMessage dlqMessage = buildMessage(appointment, primary, notification.getType(), messageId);
+                rabbitPublisher.publishToDlq(dlqMessage);
+                log.warn("Notificatie {} gepubliceerd naar notifications.dlq", notification.getId());
+            } catch (Exception e) {
+                log.error("Kon notificatie {} niet naar DLQ sturen: {}", notification.getId(), e.getMessage());
+            }
         }
     }
 
