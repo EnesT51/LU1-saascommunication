@@ -31,13 +31,13 @@ public class AppointmentCleanupService {
     public void cleanupOldAppointments() {
 
         Instant anonymizeCutoffDate = Instant.now().minus(14, ChronoUnit.DAYS);
-        int anonymizedCount = anonymizeRepository.anonymizeAppointmentsOlderThan(anonymizeCutoffDate);
+        int anonymizedCount = anonymizeRepository.anonymizeAppointmentsEndedBefore(anonymizeCutoffDate);
         System.out.println("Old appointments anonymized: " + anonymizedCount);
     }
     @Scheduled(cron = "0 30 2 * * *")
     public void deleteExpiredAppointments() {
         Instant cutoffDate = ZonedDateTime.now().minusYears(1).toInstant();
-        long deletedCount = repository.deleteByCreatedAtBefore(cutoffDate);
+        long deletedCount = repository.deleteByEndBefore(cutoffDate);
         System.out.println("Expired appointments deleted: " + deletedCount);
     }
 }
