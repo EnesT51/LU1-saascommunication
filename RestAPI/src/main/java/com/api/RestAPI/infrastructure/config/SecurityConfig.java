@@ -32,10 +32,8 @@ public class SecurityConfig {
                     "/v3/api-docs/**",
                     "/swagger-ui.html",
                     "/actuator/prometheus",
-                    "/actuator/health",
-                    "/api/message-provider/**"
+                    "/actuator/health"
                 ).permitAll()
-                .requestMatchers("/api/message-provider/**").hasRole("API")
                 .anyRequest().authenticated()
             )
             .httpBasic(httpBasic -> httpBasic.disable())

@@ -1,5 +1,6 @@
 package com.api.RestAPI.application.messageprovider.service;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -7,6 +8,7 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.api.RestAPI.domain.message.enums.MessageStatus;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageQueuePublisher;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
@@ -17,8 +19,9 @@ import com.api.RestAPI.infrastructure.persistence.message.repository.ProviderMes
 class MessageProviderServiceTest {
 
     @Test
-    @DisplayName("Should publish message to queue")
-    void queueMessagePublishesMessage() {
+    @DisplayName("Should save entity and publish message to queue")
+    void queueMessageSavesAndPublishes() {
+        // Arrange
         MessageQueuePublisher publisher = mock(MessageQueuePublisher.class);
         ProviderMessageJpaRepository repository = mock(ProviderMessageJpaRepository.class);
         MessageProviderService service = new MessageProviderService(publisher, repository);
@@ -26,6 +29,16 @@ class MessageProviderServiceTest {
         when(repository.save(org.mockito.ArgumentMatchers.any(ProviderMessageEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
+        ProviderMessageEntity savedEntity = new ProviderMessageEntity(
+                ProviderType.SWIFTSEND, "recipient", "content", "subject", MessageStatus.QUEUED);
+
+        when(repository.save(any())).thenReturn(savedEntity);
+
+        MessageProviderService service = new MessageProviderService(publisher, repository);
+        ProviderMessage message = new ProviderMessage(
+                ProviderType.SWIFTSEND, "recipient", "content", "subject", null);
+
+        // Act
         service.queueMessage(message);
 
         verify(repository).save(org.mockito.ArgumentMatchers.any(ProviderMessageEntity.class));

@@ -24,7 +24,7 @@ class NotificationFactoryTest {
     void createNotificationsCreatesExpectedReminders() {
         Instant appointmentStart = Instant.parse("2026-05-22T10:00:00Z");
 
-        List<Notification> result = notificationFactory.createNotifications("appointment-123", appointmentStart);
+        List<Notification> result = notificationFactory.createNotifications("appointment-123", appointmentStart, "test-org");
 
         assertEquals(2, result.size());
         assertReminder(result.get(0), NotificationType.REMINDER_24H, appointmentStart.minus(24, ChronoUnit.HOURS));

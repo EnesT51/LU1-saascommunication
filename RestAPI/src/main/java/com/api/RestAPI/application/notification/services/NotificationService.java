@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
 import com.api.RestAPI.application.notification.interfaces.INotificationProcessor;
 import com.api.RestAPI.application.notification.interfaces.INotificationRepository;
 import com.api.RestAPI.domain.notification.enums.NotificationStatus;
