@@ -12,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.api.RestAPI.application.notification.interfaces.INotificationRepository;
 import com.api.RestAPI.domain.appointment.Interface.AnonymizeAppointmentRepository;
 import com.api.RestAPI.domain.appointment.Interface.IAppointmentRepository;
 
@@ -21,8 +22,10 @@ class AppointmentCleanupServiceTest {
             org.mockito.Mockito.mock(IAppointmentRepository.class);
     private final AnonymizeAppointmentRepository anonymizeRepository =
             org.mockito.Mockito.mock(AnonymizeAppointmentRepository.class);
+    private final INotificationRepository notificationRepository =
+            org.mockito.Mockito.mock(INotificationRepository.class);
     private final AppointmentCleanupService cleanupService =
-            new AppointmentCleanupService(appointmentRepository, anonymizeRepository);
+            new AppointmentCleanupService(appointmentRepository, anonymizeRepository, notificationRepository);
 
     @Test
     @DisplayName("Should anonymize appointments that ended more than 14 days ago")

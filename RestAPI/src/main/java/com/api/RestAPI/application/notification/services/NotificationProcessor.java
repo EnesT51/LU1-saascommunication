@@ -108,7 +108,7 @@ public class NotificationProcessor implements INotificationProcessor {
     private void publishToDeadLetterQueue(Notification notification, AppointmentEntity appointment,
             ProviderType primary, UUID messageId) {
         try {
-            ProviderMessage dlqMessage = messageFactory.create(appointment, primary, notification.getType(), messageId);
+            ProviderMessage dlqMessage = messageFactory.create(appointment, primary, notification.getType(), messageId, notification.getId());
             deadLetterPublisher.publishToDlq(dlqMessage);
             log.warn("Notificatie {} gepubliceerd naar notifications.dlq", notification.getId());
         } catch (Exception e) {

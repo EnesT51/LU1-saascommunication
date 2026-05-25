@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.api.RestAPI.application.notification.interfaces.INotificationMetricsRecorder;
 import com.api.RestAPI.application.notification.interfaces.INotificationRepository;
 import com.api.RestAPI.domain.message.interfaces.MessageProvider;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
@@ -20,13 +21,16 @@ public class ProviderDispatcher {
 
     private final List<MessageProvider> providers;
     private final INotificationRepository notificationRepository;
+    private final INotificationMetricsRecorder metricsRecorder;
 
     public ProviderDispatcher(
             List<MessageProvider> providers,
-            INotificationRepository notificationRepository
+            INotificationRepository notificationRepository,
+            INotificationMetricsRecorder metricsRecorder
     ) {
         this.providers = providers;
         this.notificationRepository = notificationRepository;
+        this.metricsRecorder = metricsRecorder;
     }
 
     public void dispatch(ProviderMessage message) {
@@ -39,14 +43,18 @@ public class ProviderDispatcher {
 
         ProviderSendResult result = provider.send(message);
 
+        String providerName = message.getProviderType().name();
+
         if (result.isSuccess()) {
             log.info("Bericht {} succesvol bezorgd via {}", message.getId(), message.getProviderType());
-            updateNotification(message, true, null, message.getProviderType().name());
+            updateNotification(message, true, null, providerName);
+            metricsRecorder.recordSent(providerName);
             return;
         }
 
         log.warn("Bericht {} mislukt via {}: {}", message.getId(), message.getProviderType(), result.getErrorMessage());
-        updateNotification(message, false, result.getErrorMessage(), message.getProviderType().name());
+        updateNotification(message, false, result.getErrorMessage(), providerName);
+        metricsRecorder.recordFailed(providerName, "http_provider_mislukt");
     }
 
     private void updateNotification(ProviderMessage message, boolean success, String errorMessage, String provider) {

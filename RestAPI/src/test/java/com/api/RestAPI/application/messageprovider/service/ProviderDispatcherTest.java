@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.api.RestAPI.application.notification.interfaces.INotificationMetricsRecorder;
 import com.api.RestAPI.application.notification.interfaces.INotificationRepository;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageProvider;
@@ -30,6 +31,7 @@ class ProviderDispatcherTest {
         MessageProvider swiftSend = mock(MessageProvider.class);
         MessageProvider securePost = mock(MessageProvider.class);
         INotificationRepository notificationRepository = mock(INotificationRepository.class);
+        INotificationMetricsRecorder metricsRecorder = mock(INotificationMetricsRecorder.class);
         Notification notification = mock(Notification.class);
 
         UUID notificationId = UUID.randomUUID();
@@ -41,7 +43,7 @@ class ProviderDispatcherTest {
         when(securePost.send(message)).thenReturn(ProviderSendResult.success("tracking-123"));
         when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
 
-        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend, securePost), notificationRepository);
+        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend, securePost), notificationRepository, metricsRecorder);
         dispatcher.dispatch(message);
 
         // Assert
@@ -49,6 +51,7 @@ class ProviderDispatcherTest {
         verify(swiftSend, never()).send(message);
         verify(notification).markAsSent("SECUREPOST");
         verify(notificationRepository).save(notification);
+        verify(metricsRecorder).recordSent("SECUREPOST");
     }
 
     @Test
@@ -57,6 +60,7 @@ class ProviderDispatcherTest {
         // Arrange
         MessageProvider swiftSend = mock(MessageProvider.class);
         INotificationRepository notificationRepository = mock(INotificationRepository.class);
+        INotificationMetricsRecorder metricsRecorder = mock(INotificationMetricsRecorder.class);
         Notification notification = mock(Notification.class);
 
         UUID notificationId = UUID.randomUUID();
@@ -67,12 +71,13 @@ class ProviderDispatcherTest {
         when(swiftSend.send(message)).thenReturn(ProviderSendResult.failed("HTTP 503"));
         when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
 
-        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend), notificationRepository);
+        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend), notificationRepository, metricsRecorder);
         dispatcher.dispatch(message);
 
         // Assert
         verify(notification).markAsFailed("HTTP 503");
         verify(notificationRepository).save(notification);
+        verify(metricsRecorder).recordFailed("SWIFTSEND", "http_provider_mislukt");
     }
 
     @Test
@@ -81,12 +86,13 @@ class ProviderDispatcherTest {
         // Arrange
         MessageProvider swiftSend = mock(MessageProvider.class);
         INotificationRepository notificationRepository = mock(INotificationRepository.class);
+        INotificationMetricsRecorder metricsRecorder = mock(INotificationMetricsRecorder.class);
 
         ProviderMessage message = new ProviderMessage(
                 ProviderType.ASYNCFLOW, "recipient", "content", "subject", UUID.randomUUID());
         when(swiftSend.supports()).thenReturn(ProviderType.SWIFTSEND);
 
-        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend), notificationRepository);
+        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend), notificationRepository, metricsRecorder);
 
         // Act + Assert
         assertThrows(IllegalArgumentException.class, () -> dispatcher.dispatch(message));
