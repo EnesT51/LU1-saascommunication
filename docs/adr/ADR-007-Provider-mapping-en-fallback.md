@@ -48,7 +48,7 @@ Een Spring `@ConfigurationProperties(prefix = "provider")` component:
 1. Notificatie wordt voor primaire provider gequeued in `<provider>.queue`
 2. `ProviderDispatcher` doet HTTP call naar de externe provider
 3. Bij retryable failure (HTTP 5xx, timeout, netwerkfout) → Spring AMQP retry-policy probeert 3 keer
-4. Na 3 mislukte retries → bericht gaat naar `<provider>.dlq`
+4. Provider permanent down -> 3 retries -> fallback 3 retries ander provider -> fallback 3 retries ander provider -> fallback 3 retries ander provider → bericht gaat naar `<provider>.dlq`
 5. Notification status → `FAILED` met `failure_reason`
 6. Een `@Scheduled(fixedRate = 30 min)` retry job probeert FAILED notifications opnieuw via de fallback provider
 7. Bij permanente failure (4xx) → meteen FAILED, geen retry
