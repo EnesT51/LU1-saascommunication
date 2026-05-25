@@ -44,14 +44,15 @@ public class NotificationPublisher implements INotificationPublisher {
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
                 ProviderMessage message = messageFactory.create(appointment, providerType,
-                        notification.getType(), messageId);
+                        notification.getType(), messageId, notification.getId());
                 messageQueuePublisher.publish(message);
 
-                notification.markAsSent(providerType.name());
+                // DISPATCHED: bericht staat in RabbitMQ, wacht op HTTP-bevestiging van provider
+                // ProviderDispatcher zet dit naar SENT of FAILED na de echte HTTP call
+                notification.markAsDispatched();
                 notificationRepository.save(notification);
-                metricsRecorder.recordSent(providerType.name());
 
-                log.info("Notificatie {} verstuurd via {} (poging {}/{}) voor org {}",
+                log.info("Notificatie {} naar RabbitMQ gestuurd via {} (poging {}/{}) voor org {}",
                         notification.getId(), providerType, attempt, MAX_RETRIES, appointment.getOrganizationId());
                 return true;
             } catch (Exception e) {

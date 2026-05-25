@@ -7,41 +7,72 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.api.RestAPI.application.notification.interfaces.INotificationRepository;
 import com.api.RestAPI.domain.message.enums.ProviderType;
 import com.api.RestAPI.domain.message.interfaces.MessageProvider;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
 import com.api.RestAPI.domain.message.model.ProviderSendResult;
+import com.api.RestAPI.infrastructure.notification.entities.Notification;
 
 @DisplayName("ProviderDispatcher Tests")
 class ProviderDispatcherTest {
 
     @Test
-    @DisplayName("Should send message through matching provider")
+    @DisplayName("Should send message through matching provider and mark notification SENT")
     void dispatchSendsMessageThroughMatchingProvider() {
         // Arrange
         MessageProvider swiftSend = mock(MessageProvider.class);
         MessageProvider securePost = mock(MessageProvider.class);
-        ProviderMessageStatusService statusService = mock(ProviderMessageStatusService.class);
+        INotificationRepository notificationRepository = mock(INotificationRepository.class);
+        Notification notification = mock(Notification.class);
 
-        ProviderMessage message = new ProviderMessage(ProviderType.SECUREPOST, "recipient", "content", "subject", UUID.randomUUID());
+        UUID notificationId = UUID.randomUUID();
+        ProviderMessage message = new ProviderMessage(
+                ProviderType.SECUREPOST, "recipient", "content", "subject", UUID.randomUUID(), notificationId);
 
         when(swiftSend.supports()).thenReturn(ProviderType.SWIFTSEND);
         when(securePost.supports()).thenReturn(ProviderType.SECUREPOST);
         when(securePost.send(message)).thenReturn(ProviderSendResult.success("tracking-123"));
-        ProviderMessageStatusService statusService = mock(ProviderMessageStatusService.class);
+        when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
 
-        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend, securePost), statusService);
+        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend, securePost), notificationRepository);
         dispatcher.dispatch(message);
 
         // Assert
         verify(securePost).send(message);
         verify(swiftSend, never()).send(message);
-        verify(statusService).markAsSent(message.getId(), "tracking-123");
+        verify(notification).markAsSent("SECUREPOST");
+        verify(notificationRepository).save(notification);
+    }
+
+    @Test
+    @DisplayName("Should mark notification FAILED when provider fails")
+    void dispatchMarksNotificationFailedOnProviderFailure() {
+        // Arrange
+        MessageProvider swiftSend = mock(MessageProvider.class);
+        INotificationRepository notificationRepository = mock(INotificationRepository.class);
+        Notification notification = mock(Notification.class);
+
+        UUID notificationId = UUID.randomUUID();
+        ProviderMessage message = new ProviderMessage(
+                ProviderType.SWIFTSEND, "recipient", "content", "subject", UUID.randomUUID(), notificationId);
+
+        when(swiftSend.supports()).thenReturn(ProviderType.SWIFTSEND);
+        when(swiftSend.send(message)).thenReturn(ProviderSendResult.failed("HTTP 503"));
+        when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
+
+        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend), notificationRepository);
+        dispatcher.dispatch(message);
+
+        // Assert
+        verify(notification).markAsFailed("HTTP 503");
+        verify(notificationRepository).save(notification);
     }
 
     @Test
@@ -49,13 +80,13 @@ class ProviderDispatcherTest {
     void dispatchThrowsWhenNoProviderSupportsMessage() {
         // Arrange
         MessageProvider swiftSend = mock(MessageProvider.class);
-        ProviderMessageStatusService statusService = mock(ProviderMessageStatusService.class);
+        INotificationRepository notificationRepository = mock(INotificationRepository.class);
 
-        ProviderMessage message = new ProviderMessage(ProviderType.ASYNCFLOW, "recipient", "content", "subject", UUID.randomUUID());
+        ProviderMessage message = new ProviderMessage(
+                ProviderType.ASYNCFLOW, "recipient", "content", "subject", UUID.randomUUID());
         when(swiftSend.supports()).thenReturn(ProviderType.SWIFTSEND);
-        ProviderMessageStatusService statusService = mock(ProviderMessageStatusService.class);
 
-        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend), statusService);
+        ProviderDispatcher dispatcher = new ProviderDispatcher(List.of(swiftSend), notificationRepository);
 
         // Act + Assert
         assertThrows(IllegalArgumentException.class, () -> dispatcher.dispatch(message));

@@ -1,24 +1,32 @@
 package com.api.RestAPI.application.messageprovider.service;
 
+import java.util.List;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import com.api.RestAPI.application.notification.interfaces.INotificationRepository;
 import com.api.RestAPI.domain.message.interfaces.MessageProvider;
 import com.api.RestAPI.domain.message.model.ProviderMessage;
 import com.api.RestAPI.domain.message.model.ProviderSendResult;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
+import com.api.RestAPI.infrastructure.notification.entities.Notification;
 
 @Service
 public class ProviderDispatcher {
 
+    private static final Logger log = LoggerFactory.getLogger(ProviderDispatcher.class);
+
     private final List<MessageProvider> providers;
-    private final ProviderMessageStatusService statusService;
+    private final INotificationRepository notificationRepository;
 
     public ProviderDispatcher(
             List<MessageProvider> providers,
-            ProviderMessageStatusService statusService
+            INotificationRepository notificationRepository
     ) {
         this.providers = providers;
-        this.statusService = statusService;
+        this.notificationRepository = notificationRepository;
     }
 
     public void dispatch(ProviderMessage message) {
@@ -32,15 +40,30 @@ public class ProviderDispatcher {
         ProviderSendResult result = provider.send(message);
 
         if (result.isSuccess()) {
-            statusService.markAsSent(message.getId(), result.getTrackingId());
+            log.info("Bericht {} succesvol bezorgd via {}", message.getId(), message.getProviderType());
+            updateNotification(message, true, null, message.getProviderType().name());
             return;
         }
 
-        if (result.isRetryable()) {
-            statusService.markAsRetrying(message.getId(), result.getErrorMessage());
+        log.warn("Bericht {} mislukt via {}: {}", message.getId(), message.getProviderType(), result.getErrorMessage());
+        updateNotification(message, false, result.getErrorMessage(), message.getProviderType().name());
+    }
+
+    private void updateNotification(ProviderMessage message, boolean success, String errorMessage, String provider) {
+        if (message.getNotificationId() == null) return;
+
+        Optional<Notification> opt = notificationRepository.findById(message.getNotificationId());
+        if (opt.isEmpty()) {
+            log.warn("Notificatie {} niet gevonden voor status update", message.getNotificationId());
             return;
         }
 
-        statusService.markAsFailed(message.getId(), result.getErrorMessage());
+        Notification notification = opt.get();
+        if (success) {
+            notification.markAsSent(provider);
+        } else {
+            notification.markAsFailed(errorMessage);
+        }
+        notificationRepository.save(notification);
     }
 }
