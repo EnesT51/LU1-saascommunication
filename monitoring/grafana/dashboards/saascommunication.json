@@ -216,7 +216,7 @@
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
         {
-          "expr": "increase(notifications_sent_total[5m])",
+          "expr": "notifications_sent_total",
           "legendFormat": "{{provider}}",
           "refId": "A"
         }
@@ -239,7 +239,7 @@
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "targets": [
         {
-          "expr": "increase(notifications_failed_total[5m])",
+          "expr": "notifications_failed_total",
           "legendFormat": "{{provider}} - {{reason}}",
           "refId": "A"
         }

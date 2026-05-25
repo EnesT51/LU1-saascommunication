@@ -27,7 +27,7 @@ Monitoring: OpenTelemetry + Prometheus + Grafana
 - **MariaDB** – persistente opslag voor afspraken en notificatie-meta-info.
 - **Grafana / Prometheus / OpenTelemetry** – real-time monitoring van throughput, success-rate en foutmeldingen.
 
-Zie `docs/` voor de C4 diagrammen (levels 1 t/m 3), ADR-logboek en het realisatielogboek.
+Zie `docs/adr/` voor het ADR-logboek (ADR-001 t/m ADR-008). De C4-diagrammen (levels 1, 2 en 3) en het bedrijfsproces-diagram worden als losse visualisaties bij de inlevering meegeleverd.
 
 ---
 
@@ -37,7 +37,7 @@ Zie `docs/` voor de C4 diagrammen (levels 1 t/m 3), ADR-logboek en het realisati
 |---|---|
 | Docker Desktop | 4.x of nieuwer |
 | Docker Compose | v2 (komt mee met Docker Desktop) |
-| Java | 17 (alleen nodig als je de RestAPI lokaal buiten Docker draait) |
+| Java | 21 (alleen nodig als je de RestAPI lokaal buiten Docker draait) |
 | Maven | 3.9+ (idem) |
 
 ---
@@ -71,7 +71,8 @@ Zie `docs/` voor de C4 diagrammen (levels 1 t/m 3), ADR-logboek en het realisati
 
    # RabbitMQ (RestAPI → Providers)
    RABBITMQ_HOST=rabbitmq
-   RABBITMQ_PORT=5672
+   RABBITMQ_PORT=5671
+   RABBITMQ_HOST_PORT=5672
 
    # Provider credentials
    SWIFTSEND_URL=...
@@ -108,7 +109,7 @@ docker-compose ps
 |---|---|---|
 | OpenMRS frontend | http://localhost:8080/openmrs/spa | Inloggen, afspraken aanmaken |
 | RestAPI | http://localhost:8081 | REST endpoints voor notificaties |
-| RabbitMQ Management | http://localhost:15672 (`guest` / `guest`) | Queues / DLQ inspecteren |
+| RabbitMQ Management | http://localhost:15672 (`admin` / `admin`) | Queues / DLQ inspecteren |
 | ActiveMQ Console | http://localhost:8161 | OpenMRS → RestAPI berichtenverkeer |
 | Grafana | http://localhost:3000 (`admin` / `admin`) | Live dashboard met throughput + foutmeldingen |
 | MariaDB | localhost:3307 | Persistente opslag |
@@ -123,32 +124,48 @@ De RestAPI is beveiligd met een API-key. Stuur deze mee in elke request via de
 ### Een afspraak handmatig vastleggen (FHIR R4 payload)
 
 ```bash
-curl -X POST http://localhost:8081/api/appointments \
+curl -X POST http://localhost:8081/appointment/save \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: jouw-api-key-hier" \
   -d '{
     "resourceType": "Appointment",
     "id": "afspraak-12345",
     "status": "booked",
+    "description": "Cardiologie controle",
+    "comment": "Kom 10 minuten van tevoren, draag makkelijke kleding",
     "start": "2026-06-01T10:00:00Z",
     "end":   "2026-06-01T10:30:00Z",
-    "comment": "Kom 10 minuten van tevoren, draag makkelijke kleding",
     "participant": [
       {
         "actor": {
-          "display": "+31612345678"
+          "reference": "Patient/patient-001",
+          "display": "Jan de Vries"
+        },
+        "status": "accepted"
+      },
+      {
+        "actor": {
+          "reference": "Practitioner/doc-001",
+          "display": "Dr. Janssen"
+        },
+        "status": "accepted"
+      },
+      {
+        "actor": {
+          "reference": "Location/loc-ams",
+          "display": "Polikliniek interne geneeskunde, kamer 4"
         },
         "status": "accepted"
       }
     ],
     "extension": [
       {
-        "url": "http://example.org/fhir/StructureDefinition/organization-id",
-        "valueString": "ziekenhuis-amsterdam"
+        "url": "https://lu1-saascommunication.nl/fhir/StructureDefinition/patient-phone",
+        "valueString": "+31612345678"
       },
       {
-        "url": "http://example.org/fhir/StructureDefinition/location",
-        "valueString": "Polikliniek interne geneeskunde, kamer 4"
+        "url": "http://saascommunication.openmrs.org/fhir/StructureDefinition/organizationId",
+        "valueString": "ziekenhuis-amsterdam"
       }
     ]
   }'
@@ -254,8 +271,15 @@ docker-compose down -v         # stoppen + database wegen (volume verwijderen)
 
 ## Documentatie
 
-- `docs/adr/` — Architectural Decision Records
-- `docs/c4/` — C4 diagrammen (Context, Container, Component)
-- `docs/realisatielogboek.md` — Gebruikte tools, AI-inzet, commits per teamlid
-- `docs/testrapportage.md` — Test-resultaten, coverage, fallback-scenario's
+- `docs/adr/` — Architectural Decision Records (ADR-001 t/m ADR-008)
+  - ADR-001 — Communicatiemodule als zelfstandige SaaS service
+  - ADR-002 — Gekozen technologie stack
+  - ADR-003 — Event-driven integratie via ActiveMQ
+  - ADR-004 — ActiveMQ voor OpenMRS → RestAPI transport
+  - ADR-005 — RabbitMQ voor RestAPI → provider dispatch
+  - ADR-006 — Observability stack (OpenTelemetry + Prometheus + Grafana + Loki)
+  - ADR-007 — Per-organisatie provider mapping en fallback strategie
+  - ADR-008 — PII cleanup en retentie strategie (AVG/GDPR)
 - `saascommunication/README.md` — Documentatie voor OpenMRS beheerders (NFR 2)
+
+Het realisatielogboek en het testrapport worden als aparte PDF-documenten ingeleverd.

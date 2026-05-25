@@ -1,4 +1,4 @@
-# ADR-004: Gebruik van ActiveMQ als message broker
+# ADR-004: ActiveMQ voor OpenMRS → RestAPI transport
 
 ## Status
 
@@ -6,51 +6,60 @@ Accepted
 
 ## Context
 
-De communicatiemodule moet asynchroon berichten verwerken zonder afhankelijk te zijn van OpenMRS of externe messaging providers.
+We hebben twee verschillende messaging-behoeften in de architectuur:
 
-Eisen:
+1. **Inkomend:** OpenMRS publiceert afspraak-events naar onze module
+2. **Uitgaand:** De module dispatcht notificaties naar externe providers (SwiftSend / LegacyLink / AsyncFlow / SecurePost)
 
-- Berichten mogen niet verloren gaan
-- Retry-mechanisme bij fouten
-- Lage coupling tussen systemen
-- Multi-tenant ondersteuning
-- Beveiligde communicatie
-- Monitoring van message flows
+Voor de inkomende kant geldt: OpenMRS heeft via de Event-module al een ingebouwde ActiveMQ broker. Elke afspraak die in OpenMRS wordt opgeslagen of geannuleerd kan via een AfterReturningAdvice (AOP) als JMS message naar deze broker worden gepubliceerd.
 
-Opties:
+Eisen voor inkomend transport:
 
-1. Directe communicatie zonder broker
-2. RabbitMQ
-3. ActiveMQ (reeds aanwezig in OpenMRS)
+- HL7/FHIR R4 berichten doorgeven
+- Real-time verwerking, geen polling
+- Robuust bij downtime van onze module
+- Veilige overdracht (TLS)
 
 ## Decision
 
-Er wordt gebruik gemaakt van de bestaande ActiveMQ broker binnen OpenMRS.
+Voor de inkomende kant (OpenMRS → RestAPI) wordt **ActiveMQ Classic** gebruikt:
 
-## Alternatives considered
+- OpenMRS publiceert via AOP advice op de `appointments` queue
+- De RestAPI (`AppointmentEventListener`) consumeert deze queue
+- TLS afgedwongen via SSL truststore (`saasdev2026`)
 
-### Directe communicatie
+Voor de uitgaande kant (RestAPI → providers) wordt **RabbitMQ** gebruikt — zie **ADR-005** voor die keuze en de motivatie waarom we voor uitgaand niet dezelfde broker gebruiken.
 
-- Sterke afhankelijkheid
-- Geen retry mogelijkheden
-- Kans op berichtverlies
+## Alternatives considered voor inkomend transport
 
-### RabbitMQ
+### Directe HTTP-call vanuit OpenMRS
 
-- Extra infrastructuur nodig
-- Overbodig omdat ActiveMQ al aanwezig is
+- Sterke afhankelijkheid; onze module moet altijd up zijn
+- Geen ingebouwde retry of buffer
+- Verlies van events bij netwerkonderbreking
+
+### Polling via REST API
+
+- Niet real-time
+- Hoge API belasting op OpenMRS
+
+### Database trigger / shared DB
+
+- Sterk gekoppeld aan OpenMRS schema
+- Niet HL7 compliant
+- Breekbaar bij OpenMRS updates
 
 ## Consequences
 
 ### Voordelen
 
-- Geen extra infrastructuur
-- Betrouwbare aflevering van berichten
-- Ondersteunt asynchrone verwerking
-- Eenvoudig te monitoren
-- Past bij bestaande OpenMRS architectuur
+- Geen extra broker installatie voor inkomend transport (ActiveMQ is al onderdeel van OpenMRS)
+- Buffering bij downtime van de RestAPI
+- Losse koppeling tussen OpenMRS en onze module
+- Past binnen event-driven architectuur
 
 ### Nadelen
 
-- Afhankelijkheid van OpenMRS broker
-- Extra configuratie nodig voor consumers
+- Afhankelijkheid van OpenMRS ActiveMQ Classic versie
+- Twee verschillende brokers (ActiveMQ + RabbitMQ) in de stack
+  → bewuste keuze: zie ADR-005 voor de rationale waarom uitgaand een andere broker krijgt
