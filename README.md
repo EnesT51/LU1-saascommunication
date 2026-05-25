@@ -255,7 +255,8 @@ docker-compose down -v         # stoppen + database wegen (volume verwijderen)
 ## Documentatie
 
 - `docs/adr/` — Architectural Decision Records
-- `docs/c4/` — C4 diagrammen (Context, Container, Component)
-- `docs/realisatielogboek.md` — Gebruikte tools, AI-inzet, commits per teamlid
+- Realisatielogboek
+- Technische documentatie
+- Realisatielogboek
 - `docs/testrapportage.md` — Test-resultaten, coverage, fallback-scenario's
 - `saascommunication/README.md` — Documentatie voor OpenMRS beheerders (NFR 2)
