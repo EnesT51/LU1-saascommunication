@@ -71,7 +71,8 @@ Zie `docs/adr/` voor het ADR-logboek (ADR-001 t/m ADR-008). De C4-diagrammen (le
 
    # RabbitMQ (RestAPI → Providers)
    RABBITMQ_HOST=rabbitmq
-   RABBITMQ_PORT=5672
+   RABBITMQ_PORT=5671
+   RABBITMQ_HOST_PORT=5672
 
    # Provider credentials
    SWIFTSEND_URL=...

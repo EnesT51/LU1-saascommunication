@@ -97,10 +97,12 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
-      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_HOST_PORT}:5671"
       - "${RABBITMQ_MANAGEMENT_PORT}:15672"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+      - ./rabbitmq/conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq/certs:/opt/rabbitmq/certs:ro
 
   restapi:
     build:
@@ -151,6 +153,8 @@ services:
       RABBITMQ_PORT: ${RABBITMQ_PORT}
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_SSL_TRUST_STORE: /opt/rabbitmq/certs/rabbitmq-client.ts
+      RABBITMQ_SSL_TRUST_STORE_PASSWORD: ${TRUSTSTORE_PASSWORD}
 
       JAVA_TOOL_OPTIONS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
@@ -161,6 +165,7 @@ services:
       - "5006:5005"
     volumes:
       - ./activemq/certs:/opt/certs:ro
+      - ./rabbitmq/certs:/opt/rabbitmq/certs:ro
   fakecomworld:
     image: ghcr.io/avansict/in2.4-fakecomworld:main
     container_name: fakecomworld
