@@ -121,7 +121,6 @@ class AppointmentServiceTest {
         when(appointmentRepository.findByAppointmentId("appointment-123"))
                 .thenReturn(Optional.of(existingEntity));
         when(appointmentRepository.save(existingEntity)).thenReturn(existingEntity);
-        when(appointmentFactory.createNotifications(anyString(), any(), any())).thenReturn(List.of());
         when(appointmentMapper.toDto(existingEntity)).thenReturn(testResponseDto);
 
         // Act
@@ -239,7 +238,6 @@ class AppointmentServiceTest {
         when(appointmentRepository.findByAppointmentId("appointment-123"))
                 .thenReturn(Optional.of(existingEntity));
         when(appointmentRepository.save(existingEntity)).thenReturn(existingEntity);
-        when(appointmentFactory.createNotifications(anyString(), any(), any())).thenReturn(List.of());
         when(appointmentMapper.toDto(existingEntity)).thenReturn(testResponseDto);
         doNothing().when(stateHandler).validateTransition(AppointmentStatus.BOOKED, AppointmentStatus.CANCELLED);
 
@@ -267,7 +265,6 @@ class AppointmentServiceTest {
         when(appointmentRepository.findByAppointmentId("appointment-123"))
                 .thenReturn(Optional.of(existingEntity));
         when(appointmentRepository.save(existingEntity)).thenReturn(existingEntity);
-        when(appointmentFactory.createNotifications(anyString(), any(), any())).thenReturn(List.of());
         when(appointmentMapper.toDto(existingEntity)).thenReturn(testResponseDto);
 
         // Act
@@ -287,7 +284,7 @@ class AppointmentServiceTest {
         when(appointmentMapper.toEntity(testFhirAppointment)).thenReturn(testAppointmentEntity);
         when(appointmentRepository.findByAppointmentId("appointment-123")).thenReturn(Optional.empty());
         when(appointmentRepository.save(testAppointmentEntity)).thenReturn(testAppointmentEntity);
-        when(appointmentFactory.createNotifications("appointment-123", testAppointmentEntity.getStart(), any()))
+        when(appointmentFactory.createNotifications(eq("appointment-123"), eq(testAppointmentEntity.getStart()), any()))
                 .thenReturn(mockNotifications);
         when(appointmentMapper.toDto(testAppointmentEntity)).thenReturn(testResponseDto);
 
