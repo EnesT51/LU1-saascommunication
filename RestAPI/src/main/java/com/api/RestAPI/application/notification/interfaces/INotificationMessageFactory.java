@@ -9,5 +9,5 @@ import com.api.RestAPI.infrastructure.appointment.persistence.entities.Appointme
 
 public interface INotificationMessageFactory {
     ProviderMessage create(AppointmentEntity appointment, ProviderType providerType,
-            NotificationType notificationType, UUID messageId);
+            NotificationType notificationType, UUID messageId, UUID notificationId);
 }

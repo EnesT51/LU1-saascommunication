@@ -137,6 +137,10 @@ public class Notification {
         this.status = NotificationStatus.PENDING;
     }
 
+    public void markAsDispatched() {
+        this.status = NotificationStatus.DISPATCHED;
+    }
+
     public void markAsCancelled() {
         this.status = NotificationStatus.CANCELLED;
     }

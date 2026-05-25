@@ -8,6 +8,7 @@ public class ProviderMessage {
     private String content;
     private String subject;
     private UUID id;
+    private UUID notificationId;
     public ProviderMessage() {
     }
 
@@ -32,7 +33,18 @@ public class ProviderMessage {
         this.content = content;
         this.subject = subject;
         this.id = id;
+    }
 
+    public ProviderMessage(
+            ProviderType providerType,
+            String recipient,
+            String content,
+            String subject,
+            UUID id,
+            UUID notificationId
+    ) {
+        this(providerType, recipient, content, subject, id);
+        this.notificationId = notificationId;
     }
 
     public ProviderType getProviderType() {
@@ -69,7 +81,16 @@ public class ProviderMessage {
     public UUID getId() {
         return id;
     }
+
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public UUID getNotificationId() {
+        return notificationId;
+    }
+
+    public void setNotificationId(UUID notificationId) {
+        this.notificationId = notificationId;
     }
 }

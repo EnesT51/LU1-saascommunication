@@ -31,7 +31,7 @@ public class NotificationMessageFactory implements INotificationMessageFactory {
 
     @Override
     public ProviderMessage create(AppointmentEntity appointment, ProviderType providerType,
-            NotificationType notificationType, UUID messageId) {
+            NotificationType notificationType, UUID messageId, UUID notificationId) {
         // NFR 13: gebruik tijdzone van de organisatie i.p.v. een vaste zone
         ZoneId zone = timezoneMapper.resolveTimezone(appointment.getOrganizationId());
         String dateTime = appointment.getStart() != null
@@ -66,6 +66,6 @@ public class NotificationMessageFactory implements INotificationMessageFactory {
                 appointment.getAppointmentId(), providerType);
 
         return new ProviderMessage(providerType, appointment.getPatientPhoneNumber(),
-                smsText, "Appointment reminder", messageId);
+                smsText, "Appointment reminder", messageId, notificationId);
     }
 }
