@@ -271,6 +271,11 @@ docker-compose down -v         # stoppen + database wegen (volume verwijderen)
 
 ## Documentatie
 
+- `docs/adr/` — Architectural Decision Records
+- Realisatielogboek
+- Technische documentatie
+- Realisatielogboek
+- `docs/testrapportage.md` — Test-resultaten, coverage, fallback-scenario's
 - `docs/adr/` — Architectural Decision Records (ADR-001 t/m ADR-008)
   - ADR-001 — Communicatiemodule als zelfstandige SaaS service
   - ADR-002 — Gekozen technologie stack
