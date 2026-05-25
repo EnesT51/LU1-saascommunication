@@ -27,11 +27,19 @@ public class FhirAppointmentMapper implements AppointmentMapper {
 	private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
 	
 	public String toFhirJson(Object appointment) {
+		return toFhirJson(appointment, null);
+	}
+	
+	public String toCancelledFhirJson(Object appointment) {
+		return toFhirJson(appointment, "cancelled");
+	}
+	
+	private String toFhirJson(Object appointment, String forcedStatus) {
 		StringBuilder json = new StringBuilder();
 		json.append("{");
 		appendField(json, "resourceType", "Appointment");
 		appendField(json, "id", getAppointmentId(appointment));
-		appendField(json, "status", mapStatus(appointment));
+		appendField(json, "status", mapStatus(appointment, forcedStatus));
 		appendDateField(json, "start", invokeDate(appointment, "getStartDateTime"));
 		appendDateField(json, "end", invokeDate(appointment, "getEndDateTime"));
 		appendDateField(json, "created", invokeDate(appointment, "getDateCreated"));
@@ -216,6 +224,14 @@ public class FhirAppointmentMapper implements AppointmentMapper {
 	}
 	
 	private String mapStatus(Object appointment) {
+		return mapStatus(appointment, null);
+	}
+	
+	private String mapStatus(Object appointment, String forcedStatus) {
+		if (!isBlank(forcedStatus)) {
+			return forcedStatus;
+		}
+		
 		String status = enumName(invoke(appointment, "getStatus"));
 		if (status == null) {
 			return "proposed";

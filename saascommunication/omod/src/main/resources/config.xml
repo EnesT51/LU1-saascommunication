@@ -34,6 +34,11 @@
 		<class>org.openmrs.module.saascommunication.advice.AppointmentPublishAdvice</class>
 	</advice>
 	
+	<advice>
+		<point>org.openmrs.module.appointments.service.AppointmentsService</point>
+		<class>org.openmrs.module.saascommunication.advice.DeleteAppointmentPublishAdvice</class>
+	</advice>
+	
 	
 	<!-- Required Privileges 
 	<privilege>
