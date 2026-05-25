@@ -19,51 +19,50 @@ import org.openmrs.module.saascommunication.messaging.MessageTracker;
 import org.springframework.aop.AfterReturningAdvice;
 
 /**
- * Generieke basisklasse voor AOP-advices die OpenMRS-events als FHIR-bericht publiceren.
- *
- * Hoe een nieuwe module dit uitbreidt:
- *   1. Maak een subklasse aan (bijv. MedicalResultPublishAdvice)
- *   2. Override getSupportedMethodName() met de methode die je wilt intercepten
- *   3. Override toFhirPayload() als de FHIR-mapping afwijkt van de standaard
- *   4. Registreer de advice in moduleApplicationContext.xml van je module
- *
- * Voorbeeld voor een medische-resultatenmodule:
- *   public class MedicalResultPublishAdvice extends AbstractPublishAdvice {
- *       protected String getSupportedMethodName() { return "saveTestResult"; }
- *   }
+ * Generieke basisklasse voor AOP-advices die OpenMRS-events als FHIR-bericht publiceren. Hoe een
+ * nieuwe module dit uitbreidt: 1. Maak een subklasse aan 2. Override getSupportedMethodNames() met
+ * de methode(s) die je wilt intercepten 3. Override toFhirPayload() als de FHIR-mapping afwijkt van
+ * de standaard 4. Registreer de advice in config.xml van de module
  */
 public abstract class AbstractPublishAdvice implements AfterReturningAdvice {
-
+	
 	protected final Log log = LogFactory.getLog(getClass());
-
+	
 	protected final AppointmentPublisher publisher;
-
+	
 	protected final FhirMessageValidator validator;
-
+	
 	protected final MessageTracker tracker;
-
-	protected AbstractPublishAdvice(AppointmentPublisher publisher, FhirMessageValidator validator,
-	        MessageTracker tracker) {
+	
+	protected AbstractPublishAdvice(AppointmentPublisher publisher, FhirMessageValidator validator, MessageTracker tracker) {
 		this.publisher = publisher;
 		this.validator = validator;
 		this.tracker = tracker;
 	}
-
+	
 	/**
-	 * De naam van de OpenMRS-servicemethode die geïntercepteerd moet worden.
-	 * Subklassen overschrijven dit om een andere methode te koppelen.
+	 * De namen van de OpenMRS-servicemethoden die geïntercepteerd moeten worden. Subklassen kunnen
+	 * hier meerdere methoden opgeven, bijvoorbeeld create/update/delete.
 	 */
-	protected abstract String getSupportedMethodName();
-
+	protected abstract String[] getSupportedMethodNames();
+	
 	/**
-	 * Zet het returnValue om naar een FHIR-JSON payload.
-	 * Subklassen overschrijven dit als ze een andere mapper nodig hebben.
+	 * Bepaalt welk object als basis voor het FHIR-bericht gebruikt wordt. Standaard is dat de
+	 * returnValue van de geïntercepteerde methode.
+	 */
+	protected Object resolvePayloadSource(Object returnValue, Object[] args) {
+		return returnValue;
+	}
+	
+	/**
+	 * Zet het returnValue om naar een FHIR-JSON payload. Subklassen overschrijven dit als ze een
+	 * andere mapper nodig hebben.
 	 */
 	protected abstract String toFhirPayload(Object returnValue);
-
+	
 	/**
-	 * Haal de identifier op van het object (UUID, appointmentNumber, of id).
-	 * Subklassen kunnen dit overschrijven voor domeinspecifieke ID-extractie.
+	 * Haal de identifier op van het object (UUID, appointmentNumber, of id). Subklassen kunnen dit
+	 * overschrijven voor domeinspecifieke ID-extractie.
 	 */
 	protected String getIdentifier(Object returnValue) {
 		String uuid = invokeString(returnValue, "getUuid");
@@ -73,19 +72,24 @@ public abstract class AbstractPublishAdvice implements AfterReturningAdvice {
 		Object id = invoke(returnValue, "getId");
 		return id != null ? String.valueOf(id) : "unknown";
 	}
-
+	
 	@Override
 	public final void afterReturning(Object returnValue, Method method, Object[] args, Object target) {
-		if (!getSupportedMethodName().equals(method.getName()) || returnValue == null) {
+		if (method == null || !supportsMethod(method.getName())) {
 			return;
 		}
-
-		String entityId = getIdentifier(returnValue);
+		
+		Object payloadSource = resolvePayloadSource(returnValue, args);
+		if (payloadSource == null) {
+			return;
+		}
+		
+		String entityId = getIdentifier(payloadSource);
 		String messageId = tracker.generateMessageId();
-
+		
 		try {
-			String payload = toFhirPayload(returnValue);
-
+			String payload = toFhirPayload(payloadSource);
+			
 			validator.validate(payload);
 			tracker.logSending(messageId, entityId);
 			publisher.publishAppointment(messageId, payload);
@@ -96,11 +100,30 @@ public abstract class AbstractPublishAdvice implements AfterReturningAdvice {
 			log.error("FHIR validatie mislukt voor " + entityId + ": " + validationException.getMessage());
 		}
 		catch (Exception publishException) {
-			log.error("Publicatie mislukt voor " + entityId + " (messageId=" + messageId + "): "
-			        + publishException.getMessage(), publishException);
+			log.error(
+			    "Publicatie mislukt voor " + entityId + " (messageId=" + messageId + "): " + publishException.getMessage(),
+			    publishException);
 		}
 	}
-
+	
+	private boolean supportsMethod(String methodName) {
+		if (methodName == null || methodName.trim().isEmpty()) {
+			return false;
+		}
+		
+		String[] supportedMethodNames = getSupportedMethodNames();
+		if (supportedMethodNames == null || supportedMethodNames.length == 0) {
+			return false;
+		}
+		
+		for (String supportedMethodName : getSupportedMethodNames()) {
+			if (supportedMethodName != null && supportedMethodName.equals(methodName)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	protected Object invoke(Object target, String methodName) {
 		try {
 			Method method = target.getClass().getMethod(methodName);
@@ -110,7 +133,7 @@ public abstract class AbstractPublishAdvice implements AfterReturningAdvice {
 			return null;
 		}
 	}
-
+	
 	protected String invokeString(Object target, String methodName) {
 		Object value = invoke(target, methodName);
 		return value != null ? String.valueOf(value) : null;

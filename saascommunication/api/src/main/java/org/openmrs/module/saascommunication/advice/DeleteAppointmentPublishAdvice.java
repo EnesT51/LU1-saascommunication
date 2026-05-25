@@ -16,19 +16,26 @@ import org.openmrs.module.saascommunication.messaging.AppointmentPublisher;
 import org.openmrs.module.saascommunication.messaging.MessageTracker;
 
 /**
- * Intercepteert de OpenMRS AppointmentService.validateAndSave() methode en publiceert het resultaat
- * als FHIR R4 Appointment naar ActiveMQ.
+ * Publiceert een cancel event voor OpenMRS appointments. In de OpenMRS AppointmentsService is er
+ * geen deleteAppointment()-methode; annuleren gebeurt via changeStatus(Appointment, String, Date).
+ * Daarom koppelen we hier op statuswijzigingen naar CANCELLED.
  */
-public class AppointmentPublishAdvice extends AbstractPublishAdvice {
+public class DeleteAppointmentPublishAdvice extends AbstractPublishAdvice {
+	
+	private static final String[] SUPPORTED_METHOD_NAMES = { "changeStatus" };
+	
+	private static final String STATUS_CANCELLED = "cancelled";
+	
+	private static final String STATUS_CANCELED = "canceled";
 	
 	private final AppointmentMapper appointmentMapper;
 	
-	public AppointmentPublishAdvice() {
+	public DeleteAppointmentPublishAdvice() {
 		this(SaasCommunicationFactory.createAppointmentMapper(), SaasCommunicationFactory.createAppointmentPublisher(),
 		        SaasCommunicationFactory.createFhirMessageValidator(), SaasCommunicationFactory.createMessageTracker());
 	}
 	
-	public AppointmentPublishAdvice(AppointmentMapper appointmentMapper, AppointmentPublisher publisher,
+	public DeleteAppointmentPublishAdvice(AppointmentMapper appointmentMapper, AppointmentPublisher publisher,
 	    FhirMessageValidator validator, MessageTracker tracker) {
 		super(publisher, validator, tracker);
 		this.appointmentMapper = appointmentMapper;
@@ -36,25 +43,26 @@ public class AppointmentPublishAdvice extends AbstractPublishAdvice {
 	
 	@Override
 	protected String[] getSupportedMethodNames() {
-		return new String[] { "validateAndSave" };
+		return SUPPORTED_METHOD_NAMES;
+	}
+	
+	@Override
+	protected Object resolvePayloadSource(Object returnValue, Object[] args) {
+		if (args == null || args.length < 2) {
+			return null;
+		}
+		String status = args[1] != null ? String.valueOf(args[1]) : null;
+		if (status == null) {
+			return null;
+		}
+		if (!STATUS_CANCELLED.equalsIgnoreCase(status) && !STATUS_CANCELED.equalsIgnoreCase(status)) {
+			return null;
+		}
+		return args[0];
 	}
 	
 	@Override
 	protected String toFhirPayload(Object returnValue) {
-		return appointmentMapper.toFhirJson(returnValue);
-	}
-	
-	@Override
-	protected String getIdentifier(Object returnValue) {
-		String uuid = invokeString(returnValue, "getUuid");
-		if (uuid != null) {
-			return uuid;
-		}
-		String appointmentNumber = invokeString(returnValue, "getAppointmentNumber");
-		if (appointmentNumber != null) {
-			return appointmentNumber;
-		}
-		Object appointmentId = invoke(returnValue, "getAppointmentId");
-		return appointmentId != null ? String.valueOf(appointmentId) : "unknown-appointment";
+		return appointmentMapper.toCancelledFhirJson(returnValue);
 	}
 }

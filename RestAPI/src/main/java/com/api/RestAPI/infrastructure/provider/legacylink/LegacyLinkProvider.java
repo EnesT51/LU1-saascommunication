@@ -36,7 +36,7 @@ public class LegacyLinkProvider implements MessageProvider {
                 "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                         "<SendSmsRequest xmlns=\"http://legacylink.fakecomworld.com/v1\">" +
                         "<PhoneNumber>%s</PhoneNumber>" +
-                        "<MessageText>%s</MessageText>" +
+                        "<MessageText><![CDATA[%s]]></MessageText>" +
                         "<SenderIdentification>%s</SenderIdentification>" +
                         "</SendSmsRequest>",
                 message.getRecipient(),
