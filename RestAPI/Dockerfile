@@ -7,7 +7,7 @@ COPY mvnw mvnw
 COPY mvnw.cmd mvnw.cmd
 COPY src src
 
-RUN mvn -B -DskipTests package
+RUN mvn -B package
 
 # Download OpenTelemetry Java agent in the build stage (maven image has curl)
 RUN curl -L -o /otel-agent.jar \

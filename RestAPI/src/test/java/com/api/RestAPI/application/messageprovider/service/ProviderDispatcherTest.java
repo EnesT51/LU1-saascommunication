@@ -130,6 +130,99 @@ class ProviderDispatcherTest {
     }
 
     @Test
+    @DisplayName("Should fallback when LegacyLink fails")
+    void dispatchFallsBackWhenLegacyLinkFails() {
+        MessageProvider legacyLink = mock(MessageProvider.class);
+        MessageProvider asyncFlow  = mock(MessageProvider.class);
+        INotificationRepository notificationRepository = mock(INotificationRepository.class);
+        INotificationMetricsRecorder metricsRecorder   = mock(INotificationMetricsRecorder.class);
+        OrganizationProviderMapper providerMapper       = mock(OrganizationProviderMapper.class);
+        DeadLetterMessageQueuePublisher deadLetterPublisher = mock(DeadLetterMessageQueuePublisher.class);
+        Notification notification = mock(Notification.class);
+
+        UUID notificationId = UUID.randomUUID();
+        ProviderMessage message = new ProviderMessage(
+                ProviderType.LEGACYLINK, "recipient", "content", "subject", UUID.randomUUID(), notificationId);
+
+        when(legacyLink.supports()).thenReturn(ProviderType.LEGACYLINK);
+        when(asyncFlow.supports()).thenReturn(ProviderType.ASYNCFLOW);
+        when(legacyLink.send(message)).thenReturn(ProviderSendResult.failed("HTTP 503"));
+        when(asyncFlow.send(org.mockito.ArgumentMatchers.any())).thenReturn(ProviderSendResult.success("tracking-async"));
+        when(providerMapper.resolveFallbacks(ProviderType.LEGACYLINK)).thenReturn(List.of(ProviderType.ASYNCFLOW));
+        when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
+
+        ProviderDispatcher dispatcher = new ProviderDispatcher(
+                List.of(legacyLink, asyncFlow), notificationRepository, metricsRecorder, providerMapper, deadLetterPublisher);
+        dispatcher.dispatch(message);
+
+        verify(legacyLink, times(3)).send(message);
+        verify(asyncFlow, atLeast(1)).send(org.mockito.ArgumentMatchers.any());
+        verify(notification).markAsSent("ASYNCFLOW");
+    }
+
+    @Test
+    @DisplayName("Should fallback when AsyncFlow fails")
+    void dispatchFallsBackWhenAsyncFlowFails() {
+        MessageProvider asyncFlow  = mock(MessageProvider.class);
+        MessageProvider securePost = mock(MessageProvider.class);
+        INotificationRepository notificationRepository = mock(INotificationRepository.class);
+        INotificationMetricsRecorder metricsRecorder   = mock(INotificationMetricsRecorder.class);
+        OrganizationProviderMapper providerMapper       = mock(OrganizationProviderMapper.class);
+        DeadLetterMessageQueuePublisher deadLetterPublisher = mock(DeadLetterMessageQueuePublisher.class);
+        Notification notification = mock(Notification.class);
+
+        UUID notificationId = UUID.randomUUID();
+        ProviderMessage message = new ProviderMessage(
+                ProviderType.ASYNCFLOW, "recipient", "content", "subject", UUID.randomUUID(), notificationId);
+
+        when(asyncFlow.supports()).thenReturn(ProviderType.ASYNCFLOW);
+        when(securePost.supports()).thenReturn(ProviderType.SECUREPOST);
+        when(asyncFlow.send(message)).thenReturn(ProviderSendResult.failed("Timeout"));
+        when(securePost.send(org.mockito.ArgumentMatchers.any())).thenReturn(ProviderSendResult.success("tracking-secure"));
+        when(providerMapper.resolveFallbacks(ProviderType.ASYNCFLOW)).thenReturn(List.of(ProviderType.SECUREPOST));
+        when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
+
+        ProviderDispatcher dispatcher = new ProviderDispatcher(
+                List.of(asyncFlow, securePost), notificationRepository, metricsRecorder, providerMapper, deadLetterPublisher);
+        dispatcher.dispatch(message);
+
+        verify(asyncFlow, times(3)).send(message);
+        verify(securePost, atLeast(1)).send(org.mockito.ArgumentMatchers.any());
+        verify(notification).markAsSent("SECUREPOST");
+    }
+
+    @Test
+    @DisplayName("Should fallback when SecurePost fails")
+    void dispatchFallsBackWhenSecurePostFails() {
+        MessageProvider securePost = mock(MessageProvider.class);
+        MessageProvider swiftSend  = mock(MessageProvider.class);
+        INotificationRepository notificationRepository = mock(INotificationRepository.class);
+        INotificationMetricsRecorder metricsRecorder   = mock(INotificationMetricsRecorder.class);
+        OrganizationProviderMapper providerMapper       = mock(OrganizationProviderMapper.class);
+        DeadLetterMessageQueuePublisher deadLetterPublisher = mock(DeadLetterMessageQueuePublisher.class);
+        Notification notification = mock(Notification.class);
+
+        UUID notificationId = UUID.randomUUID();
+        ProviderMessage message = new ProviderMessage(
+                ProviderType.SECUREPOST, "recipient", "content", "subject", UUID.randomUUID(), notificationId);
+
+        when(securePost.supports()).thenReturn(ProviderType.SECUREPOST);
+        when(swiftSend.supports()).thenReturn(ProviderType.SWIFTSEND);
+        when(securePost.send(message)).thenReturn(ProviderSendResult.failed("Auth failed"));
+        when(swiftSend.send(org.mockito.ArgumentMatchers.any())).thenReturn(ProviderSendResult.success("tracking-swift"));
+        when(providerMapper.resolveFallbacks(ProviderType.SECUREPOST)).thenReturn(List.of(ProviderType.SWIFTSEND));
+        when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
+
+        ProviderDispatcher dispatcher = new ProviderDispatcher(
+                List.of(securePost, swiftSend), notificationRepository, metricsRecorder, providerMapper, deadLetterPublisher);
+        dispatcher.dispatch(message);
+
+        verify(securePost, times(3)).send(message);
+        verify(swiftSend, atLeast(1)).send(org.mockito.ArgumentMatchers.any());
+        verify(notification).markAsSent("SWIFTSEND");
+    }
+
+    @Test
     @DisplayName("Should throw when no provider supports message")
     void dispatchThrowsWhenNoProviderSupportsMessage() {
         MessageProvider swiftSend = mock(MessageProvider.class);

@@ -35,7 +35,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 		"providers.securepost.message-url=http://localhost/messages",
 		"providers.securepost.client-id=test",
 		"providers.securepost.client-secret=test",
-		"providers.securepost.student-group=test"
+		"providers.securepost.student-group=test",
+		"spring.rabbitmq.ssl.enabled=false"
 })
 class RestApiApplicationTests {
 

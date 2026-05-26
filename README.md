@@ -33,12 +33,12 @@ Zie `docs/adr/` voor het ADR-logboek (ADR-001 t/m ADR-008). De C4-diagrammen (le
 
 ## Vereisten
 
-| Tool | Versie |
-|---|---|
-| Docker Desktop | 4.x of nieuwer |
-| Docker Compose | v2 (komt mee met Docker Desktop) |
-| Java | 21 (alleen nodig als je de RestAPI lokaal buiten Docker draait) |
-| Maven | 3.9+ (idem) |
+| Tool           | Versie                                                          |
+| -------------- | --------------------------------------------------------------- |
+| Docker Desktop | 4.x of nieuwer                                                  |
+| Docker Compose | v2 (komt mee met Docker Desktop)                                |
+| Java           | 21 (alleen nodig als je de RestAPI lokaal buiten Docker draait) |
+| Maven          | 3.9+ (idem)                                                     |
 
 ---
 
@@ -105,14 +105,14 @@ docker-compose ps
 
 ### Services & poorten
 
-| Service | URL | Doel |
-|---|---|---|
-| OpenMRS frontend | http://localhost:8080/openmrs/spa | Inloggen, afspraken aanmaken |
-| RestAPI | http://localhost:8081 | REST endpoints voor notificaties |
-| RabbitMQ Management | http://localhost:15672 (`admin` / `admin`) | Queues / DLQ inspecteren |
-| ActiveMQ Console | http://localhost:8161 | OpenMRS → RestAPI berichtenverkeer |
-| Grafana | http://localhost:3000 (`admin` / `admin`) | Live dashboard met throughput + foutmeldingen |
-| MariaDB | localhost:3307 | Persistente opslag |
+| Service             | URL                                        | Doel                                          |
+| ------------------- | ------------------------------------------ | --------------------------------------------- |
+| OpenMRS frontend    | http://localhost:8080/openmrs/spa          | Inloggen, afspraken aanmaken                  |
+| RestAPI             | http://localhost:8081                      | REST endpoints voor notificaties              |
+| RabbitMQ Management | http://localhost:15672 (`admin` / `admin`) | Queues / DLQ inspecteren                      |
+| ActiveMQ Console    | http://localhost:8161                      | OpenMRS → RestAPI berichtenverkeer            |
+| Grafana             | http://localhost:3000 (`admin` / `admin`)  | Live dashboard met throughput + foutmeldingen |
+| MariaDB             | localhost:3307                             | Persistente opslag                            |
 
 ---
 
@@ -260,12 +260,12 @@ docker-compose down -v         # stoppen + database wegen (volume verwijderen)
 
 ## Veelvoorkomende issues
 
-| Probleem | Oplossing |
-|---|---|
-| `401 Unauthorized` op RestAPI | Vergeet niet de `X-API-KEY` header met de waarde uit `.env` |
-| OpenMRS toont geen afspraken-modus | Wacht 2 minuten, OpenMRS heeft tijd nodig om alle modules te laden |
-| RabbitMQ queue blijft groeien | Check `notifications.dlq` voor permanent mislukte berichten en de Grafana fout-counter |
-| Verkeerde tijdzone in SMS | Controleer of `organization.timezone.<orgId>` is ingesteld voor het betreffende ziekenhuis |
+| Probleem                           | Oplossing                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| `401 Unauthorized` op RestAPI      | Vergeet niet de `X-API-KEY` header met de waarde uit `.env`                                |
+| OpenMRS toont geen afspraken-modus | Wacht 2 minuten, OpenMRS heeft tijd nodig om alle modules te laden                         |
+| RabbitMQ queue blijft groeien      | Check `notifications.dlq` voor permanent mislukte berichten en de Grafana fout-counter     |
+| Verkeerde tijdzone in SMS          | Controleer of `organization.timezone.<orgId>` is ingesteld voor het betreffende ziekenhuis |
 
 ---
 
