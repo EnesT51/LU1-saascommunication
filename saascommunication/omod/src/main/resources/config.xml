@@ -25,15 +25,19 @@
 
 	<aware_of_modules>
 		<aware_of_module>org.openmrs.module.legacyui</aware_of_module>
+		<aware_of_module>org.openmrs.module.appointments</aware_of_module>
 	</aware_of_modules>
 	
 	
-	<!-- AOP
 	<advice>
-		<point>org.openmrs.api.FormService</point>
-		<class>@MODULE_PACKAGE@.advice.DuplicateFormAdvisor</class>
+		<point>org.openmrs.module.appointments.service.AppointmentsService</point>
+		<class>org.openmrs.module.saascommunication.advice.AppointmentPublishAdvice</class>
 	</advice>
-	 /AOP -->
+	
+	<advice>
+		<point>org.openmrs.module.appointments.service.AppointmentsService</point>
+		<class>org.openmrs.module.saascommunication.advice.DeleteAppointmentPublishAdvice</class>
+	</advice>
 	
 	
 	<!-- Required Privileges 
@@ -44,17 +48,18 @@
 	 /Required Privileges -->
 
 
-	<!-- Required Global Properties 
+	<!-- Required Global Properties -->
 	<globalProperty>
-		<property>@MODULE_ID@.someProperty</property>
-		<defaultValue></defaultValue>
+		<property>saascommunication.organizationId</property>
+		<defaultValue>default-organization</defaultValue>
 		<description>
-			A description of the global property goes here.  The description
-			should explain enough for administrators to understand the purpose
-			and possible values for the global property.
+			Unieke ID van deze OpenMRS organisatie voor de SaaS communicatiemodule.
+			Wordt meegestuurd in elk FHIR bericht zodat de communicatiemodule weet
+			van welk ziekenhuis het bericht afkomstig is.
+			Voorbeeld: amsterdam-amc, rotterdam-erasmus
 		</description>
 	</globalProperty>
-	/Required Global Properties -->
+	<!-- /Required Global Properties -->
 	
 	<!--
 	<dwr>

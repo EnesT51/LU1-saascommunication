@@ -1,0 +1,30 @@
+modules:
+  activemq:
+    headers:
+      Origin: http://json-exporter
+    metrics:
+      - name: activemq
+        type: object
+        help: "ActiveMQ broker statistics"
+        path: '{.value}'
+        values:
+          total_messages: '{.TotalMessageCount}'
+          total_enqueued: '{.TotalEnqueueCount}'
+          total_dequeued: '{.TotalDequeueCount}'
+          total_consumers: '{.TotalConsumerCount}'
+
+  rabbitmq:
+    headers:
+      Authorization: "Basic YWRtaW46YWRtaW4="
+    metrics:
+      - name: rabbitmq_queue
+        type: object
+        help: "RabbitMQ queue statistics per queue"
+        path: '{[*]}'
+        labels:
+          queue: '{.name}'
+        values:
+          messages:              '{.messages}'
+          messages_ready:        '{.messages_ready}'
+          messages_unacknowledged: '{.messages_unacknowledged}'
+          consumers:             '{.consumers}'

@@ -1,0 +1,38 @@
+package com.api.RestAPI.infrastructure.activemq;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.jms.annotation.JmsListener;
+import org.springframework.stereotype.Component;
+
+import com.api.RestAPI.application.appointment.interfaces.IAppointmentEventProcessor;
+import com.api.RestAPI.application.globalexceptions.InvalidFhirJsonException;
+import com.api.RestAPI.application.notification.AppointmentEventStore;
+
+@Component
+public class AppointmentEventListener {
+
+    private static final Logger log = LoggerFactory.getLogger(AppointmentEventListener.class);
+
+    private final IAppointmentEventProcessor appointmentEventProcessor;
+    private final AppointmentEventStore eventStore;
+
+    public AppointmentEventListener(IAppointmentEventProcessor appointmentEventProcessor, AppointmentEventStore eventStore) {
+        this.appointmentEventProcessor = appointmentEventProcessor;
+        this.eventStore = eventStore;
+    }
+
+    @JmsListener(destination = "${app.queue.name}")
+    public void receive(String payload) {
+        try {
+            eventStore.store(payload);
+            appointmentEventProcessor.processAppointmentEvent(payload);
+            log.info("Received and processed appointment event from ActiveMQ");
+        } catch (InvalidFhirJsonException e) {
+            log.warn("Rejected invalid appointment event from ActiveMQ: {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("Failed to process appointment event from ActiveMQ: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to process appointment event", e);
+        }
+    }
+}
